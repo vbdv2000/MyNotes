@@ -6,8 +6,8 @@ venv/
 .uv/
 
 # Environment variables
-.env
-.env.*.local
+backend/secrets/*
+!backend/secrets/*.template
 
 # Docker
 .docker/
