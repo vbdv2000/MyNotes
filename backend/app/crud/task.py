@@ -1,17 +1,20 @@
 from typing import List, Optional
 
 from sqlalchemy.orm import Session
+from sqlalchemy import select
 
 from app.models.task import Task
 from app.schemas.task import TaskCreate, TaskUpdate
 
 def get_task(db: Session, task_id: int) -> Optional[Task]:
     """Retrieves a single task by its ID."""
-    return db.query(Task).filter(Task.id == task_id).first()
+    stmt = select(Task).where(Task.id == task_id)
+    return db.scalar(stmt)
 
 def get_tasks(db: Session, skip: int = 0, limit: int = 100) -> List[Task]:
     """Retrieves a list of tasks with pagination."""
-    return db.query(Task).offset(skip).limit(limit).all()
+    stmt = select(Task).offset(skip).limit(limit)
+    return list(db.scalars(stmt))
 
 def create_task(db: Session, task_in: TaskCreate) -> Task:
     """Creates a new task in the database."""

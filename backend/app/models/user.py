@@ -1,29 +1,23 @@
-from pydantic import BaseModel, EmailStr
-from typing import Optional
+# backend/app/models/user.py
 
-# Propiedades compartidas entre modelos
-class UserBase(BaseModel):
-    email: Optional[EmailStr] = None
-    is_active: Optional[bool] = True
-    is_superuser: bool = False
-    full_name: Optional[str] = None
+from sqlalchemy import Column, Integer, String, Boolean
+from sqlalchemy.orm import relationship
 
-# Propiedades para crear un nuevo usuario (requiere email y password)
-class UserCreate(UserBase):
-    email: EmailStr
-    password: str
+from app.db.base import Base
 
-# Propiedades para actualizar un usuario (password opcional)
-class UserUpdate(UserBase):
-    password: Optional[str] = None
+class User(Base):
+    """
+    SQLAlchemy model for the 'users' table.
+    """
+    __tablename__ = "users"
 
-# Propiedades que se leen de la base de datos (con el ID)
-class UserInDBBase(UserBase):
-    id: Optional[int] = None
+    id = Column(Integer, primary_key=True, index=True)
+    full_name = Column(String, index=True)
+    email = Column(String, unique=True, index=True, nullable=False)
+    hashed_password = Column(String, nullable=False)
+    is_active = Column(Boolean, default=True)
+    is_superuser = Column(Boolean, default=False)
     
-    class Config:
-        from_attributes = True
-
-# Modelo de respuesta pública de la API
-class User(UserInDBBase):
-    pass
+    # Relationships
+    tasks = relationship("Task", back_populates="owner")
+    projects = relationship("Project", back_populates="owner")
