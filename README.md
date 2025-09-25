@@ -35,10 +35,7 @@ A simple and intuitive task manager built with Python (FastAPI), Vue.js, and Pos
 ## ⚙️ Getting Started (Development)
 
 1.  **Clone the repository:**
-    ```bash
-    git clone [https://github.com/your-username/task-manager.git](https://github.com/your-username/task-manager.git)
-    cd task-manager
-    ```
+
 
 2.  **Create `.env` file:**
     Copy the example file and fill in your variables.
