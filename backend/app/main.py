@@ -1,8 +1,9 @@
 # backend/app/main.py
 
 from fastapi import FastAPI
-from app.db.base import Base, engine
 
+from app.api.api import api_router
+from app.db.base import Base, engine, SessionLocal
 # Import all models to ensure they are registered with SQLAlchemy's Base
 from app.models.user import User
 from app.models.task import Task
@@ -17,6 +18,17 @@ app = FastAPI(
     description="A simple and intuitive task manager with user and project management.",
     version="0.1.0",
 )
+
+# Dependency for database sessions
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
+
+# Include the main API router
+app.include_router(api_router, prefix="/api")
 
 @app.get("/")
 def read_root():

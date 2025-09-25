@@ -1,5 +1,3 @@
-# backend/app/db/base.py
-
 from typing import Any
 
 from sqlalchemy import create_engine
@@ -33,3 +31,13 @@ class Base:
 
     id: Any
     __name__: str
+
+def get_db():
+    """
+    Returns a database session.
+    """
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
