@@ -25,7 +25,6 @@ def get_user_by_email(db: Session, email: str) -> Optional[User]:
     return db.scalar(stmt)
 
 def create_user(db: Session, user_in: UserCreate) -> User:
-    """Creates a new user in the database."""
     hashed_password = get_password_hash(user_in.password)
     db_user = User(
         email=user_in.email,

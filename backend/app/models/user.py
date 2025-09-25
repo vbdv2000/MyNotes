@@ -20,4 +20,4 @@ class User(Base):
     
     # Relationships
     tasks = relationship("Task", back_populates="owner")
-    projects = relationship("Project", back_populates="owner")
+    # projects = relationship("Project", back_populates="owner")
