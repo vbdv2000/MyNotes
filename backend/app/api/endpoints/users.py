@@ -1,40 +1,97 @@
 from typing import Any, List
-from fastapi import APIRouter, Depends, HTTPException
+
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
-from app.schemas.user import UserCreate, User
-from app.crud.user import create_user, get_user_by_email, get_user
+from app.schemas.user import User as UserSchema, UserCreate, UserUpdate 
+from app.crud import user as crud_user 
 
 router = APIRouter()
 
-@router.post("/", response_model=User)
+@router.post("/", response_model=UserSchema, status_code=status.HTTP_201_CREATED)
 def create_new_user(
-    *,
-    db: Session = Depends(get_db),
     user_in: UserCreate,
-) -> Any:
+    db: Session = Depends(get_db)
+) -> UserSchema:
     """
-    Create a new user.
+    Creates a new user and checks if the email already exists.
     """
-    user = get_user_by_email(db, email=user_in.email)
+    # 1. Check if the email already exists
+    user = crud_user.get_user_by_email(db, email=user_in.email)
+    
     if user:
         raise HTTPException(
-            status_code=400,
-            detail="The user with this username already exists in the system.",
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Email already registered."
         )
-    user = create_user(db, user_in=user_in)
-    return user
+        
+    # 2. If it does not exist, create the user
+    new_user = crud_user.create_user(db, user_in=user_in)
+    return new_user
 
-@router.get("/{user_id}", response_model=User)
-def read_user_by_id(
-    user_id: int,
+@router.get("/", response_model=List[UserSchema])
+def read_users(
     db: Session = Depends(get_db),
+    skip: int = 0, 
+    limit: int = 100,
 ) -> Any:
     """
-    Get a specific user by ID.
+    Retrieves the list of all users with optional pagination.
     """
-    user = get_user(db, user_id=user_id)
+    users = crud_user.get_all_users(db, skip=skip, limit=limit)
+    return users
+
+@router.get("/{user_id}", response_model=UserSchema)
+def read_user_by_id(
+    user_id: int,
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    Retrieves a specific user by ID.
+    """
+    user = crud_user.get_user(db, user_id=user_id)
     if not user:
-        raise HTTPException(status_code=404, detail="User not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="User not found"
+        )
+    return user
+
+@router.patch("/{user_id}", response_model=UserSchema)
+def update_user_endpoint(
+    user_id: int,
+    user_in: UserUpdate,
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    Updates an existing user.
+    """
+    # 1. Get the existing user object
+    user = crud_user.get_user(db, user_id=user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="User not found"
+        )
+    
+    # 2. Update the user
+    user = crud_user.update_user(db, db_obj=user, obj_in=user_in)
+    return user
+
+@router.delete("/{user_id}", response_model=UserSchema)
+def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db)
+) -> Any:
+    """
+    Deletes a user by ID.
+    """
+    user = crud_user.get_user(db, user_id=user_id)
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    crud_user.delete_user(db, db_obj=user)
     return user

@@ -1,4 +1,4 @@
-from typing import List, Optional
+from typing import Any, Dict, Optional, Union, List
 
 from sqlalchemy.orm import Session
 from sqlalchemy import select
@@ -27,3 +27,34 @@ def create_task(db: Session, task_in: TaskCreate) -> Task:
     db.commit()
     db.refresh(db_task)
     return db_task
+
+def update_task(
+    db: Session, db_obj: Task, obj_in: Union[TaskUpdate, Dict[str, Any]]
+) -> Task:
+    """
+    Updates an existing Task object with new data.
+    """
+    obj_data = db_obj.dict()
+    if isinstance(obj_in, dict):
+        update_data = obj_in
+    else:
+        # Pydantic utility to get a dict of fields that were set (not None)
+        update_data = obj_in.model_dump(exclude_unset=True)
+
+    for field in obj_data:
+        if field in update_data:
+            setattr(db_obj, field, update_data[field])
+
+    db.add(db_obj)
+    db.commit()
+    db.refresh(db_obj)
+    return db_obj
+
+
+def delete_task(db: Session, db_obj: Task) -> Task:
+    """
+    Deletes a Task object.
+    """
+    db.delete(db_obj)
+    db.commit()
+    return db_obj
