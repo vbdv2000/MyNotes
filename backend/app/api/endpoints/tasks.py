@@ -3,11 +3,38 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from app.db.base import get_db
-from app.schemas.task import TaskCreate, Task, TaskUpdate, Task as TaskSchema
+from app.schemas.task import TaskCreate, TaskUpdate, Task as TaskSchema
 from app.crud import task as crud_task
-from app.crud import user as crud_user
+from app.crud import project as crud_project
 
-router = APIRouter()
+# Configuración del Router
+router = APIRouter(prefix="/tasks", tags=["tasks"])
+
+# --- Business Logic Validation Helper ---
+
+def check_assigned_users_validity(db: Session, project_id: int, assigned_user_ids: List[int]):
+    """
+    Checks if all assigned_user_ids are either the project owner or a collaborator.
+    Raises 404 if Project is not found.
+    Raises 400 if any assigned user is not a valid team member.
+    """
+    project = crud_project.get_project(db, project_id=project_id)
+    if not project:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found.")
+
+    valid_user_ids = {project.owner_id}
+    valid_user_ids.update(c.id for c in project.collaborators)
+
+    # 2. Verify each assigned user ID
+    for user_id in assigned_user_ids:
+        if user_id not in valid_user_ids:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"User ID {user_id} is not a valid team member (Owner/Collaborator) for this project."
+            )
+    return project 
+
+# --- CRUD Endpoints ---
 
 @router.post("/", response_model=TaskSchema, status_code=status.HTTP_201_CREATED)
 def create_new_task(
@@ -15,15 +42,9 @@ def create_new_task(
     db: Session = Depends(get_db),
 ) -> Any:
     """
-    Create a new task.
+    Create a new task, requiring it to belong to a project and validating assigned users.
     """
-    owner = crud_user.get_user(db, user_id=task_in.owner_id)
-    
-    if owner is None:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"User not found with id: {task_in.owner_id}"
-        )
+    check_assigned_users_validity(db, task_in.project_id, task_in.assigned_user_ids)
     
     task = crud_task.create_task(db, task_in=task_in)
     
@@ -66,7 +87,7 @@ def update_task_endpoint(
     db: Session = Depends(get_db)
 ) -> Any:
     """
-    Updates an existing task.
+    Updates an existing task and validates new assigned users if provided.
     """
     task = crud_task.get_task(db, task_id=task_id)
     if not task:
@@ -75,6 +96,9 @@ def update_task_endpoint(
             detail="Task not found"
         )
     
+    if task_in.assigned_user_ids is not None:
+        check_assigned_users_validity(db, task.project_id, task_in.assigned_user_ids)
+
     task = crud_task.update_task(db, db_obj=task, obj_in=task_in)
     return task
 

@@ -1,33 +1,36 @@
 from typing import Optional, List
 from pydantic import BaseModel, ConfigDict
+
+# Importar esquemas
+from app.schemas.task import Task
 from app.schemas.user import UserBase 
 
 # --- Base Schema ---
 
-class TaskBase(BaseModel):
+class ProjectBase(BaseModel):
     title: str
     description: Optional[str] = None
-    status: str = "todo" # Ej: 'todo', 'in-progress', 'done'
     
 # --- Create Schema ---
 
-class TaskCreate(TaskBase):
-    project_id: int
-    assigned_user_ids: List[int] = []
-
+class ProjectCreate(ProjectBase):
+    owner_id: int
+    collaborator_ids: List[int] = []
+    
 # --- Update Schema ---
 
-class TaskUpdate(TaskBase):
+class ProjectUpdate(ProjectBase):
     title: Optional[str] = None
     description: Optional[str] = None
-    status: Optional[str] = None
-    assigned_user_ids: Optional[List[int]] = None
+    collaborator_ids: Optional[List[int]] = None 
 
 # --- Read Schema ---
 
-class Task(TaskBase):
+class Project(ProjectBase):
     id: int
-    project_id: int
-    assigned_users: List[UserBase] = [] 
+    owner_id: int
+    owner: UserBase
+    collaborators: List[UserBase] = []
+    tasks: List[Task] = []
     
     model_config = ConfigDict(from_attributes=True)

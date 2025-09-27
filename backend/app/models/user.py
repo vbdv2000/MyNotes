@@ -4,6 +4,8 @@ from sqlalchemy import Column, Integer, String, Boolean
 from sqlalchemy.orm import relationship
 
 from app.db.base import Base
+from app.models.project import project_collaborator 
+from app.models.task import task_assigned
 
 class User(Base):
     """
@@ -19,5 +21,18 @@ class User(Base):
     is_superuser = Column(Boolean, default=False)
     
     # Relationships
-    tasks = relationship("Task", back_populates="owner")
-    # projects = relationship("Project", back_populates="owner")
+    owned_projects = relationship("Project", back_populates="owner", cascade="all, delete-orphan")
+
+    # Proyectos en los que Colabora (Collaborating Projects)
+    collaborating_projects = relationship(
+        "Project",
+        secondary=project_collaborator,
+        back_populates="collaborators"
+    )
+    
+    # Tareas asignadas (Si tienes una relación Task.assigned_to)
+    assigned_tasks = relationship(
+        "Task", 
+        secondary=task_assigned, 
+        back_populates="assigned_users"
+    )
