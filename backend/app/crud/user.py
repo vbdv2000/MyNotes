@@ -36,6 +36,7 @@ def create_user(db: Session, user_in: UserCreate) -> User:
         hashed_password=hashed_password,
         full_name=user_in.full_name,
         is_superuser=user_in.is_superuser,
+        is_active=user_in.is_active,
     )
     db.add(db_user)
     db.commit()
@@ -48,21 +49,23 @@ def update_user(
     obj_in: Union[UserUpdate, Dict[str, Any]]
 ) -> Optional[User]:
     """Updates a user's information."""
-    obj_data = db_obj.dict()
     if isinstance(obj_in, dict):
         update_data = obj_in
     else:
+        # Usa model_dump() para obtener solo los campos que fueron explícitamente pasados.
         update_data = obj_in.model_dump(exclude_unset=True)
 
-    # Hash password if it's provided in the update data
-    if update_data.get("password"):
-        from app.crud.user import get_password_hash
-        update_data["hashed_password"] = get_password_hash(update_data["password"])
+    if "password" in update_data:
+        password = update_data["password"]
+        if password:
+            hashed_password = get_password_hash(password)
+            setattr(db_obj, "hashed_password", hashed_password)
+        
+        # Eliminar 'password' del diccionario para no intentar establecerlo en el objeto DB
         del update_data["password"]
 
-    for field in obj_data:
-        if field in update_data:
-            setattr(db_obj, field, update_data[field])
+    for field, value in update_data.items():
+        setattr(db_obj, field, value)
 
     db.add(db_obj)
     db.commit()

@@ -1,7 +1,7 @@
 from typing import Any
 
 from sqlalchemy import create_engine
-from sqlalchemy.ext.declarative import as_declarative, declared_attr
+from sqlalchemy.orm import as_declarative, declared_attr
 from sqlalchemy.orm import sessionmaker
 
 # Load environment variables

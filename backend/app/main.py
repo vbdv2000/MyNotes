@@ -11,12 +11,11 @@ from app.models.task import Task
 
 # Create the database tables
 # This is a development-only step. In production, we will use Alembic migrations.
-Base.metadata.create_all(bind=engine)
 
 app = FastAPI(
     title="Task Manager API",
     description="A simple and intuitive task manager with user and project management.",
-    version="0.1.0",
+    version="0.1.1",
 )
 
 # Dependency for database sessions

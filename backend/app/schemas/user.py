@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, ConfigDict
 from typing import Optional
 
 # Propiedades compartidas entre modelos
@@ -21,8 +21,7 @@ class UserUpdate(UserBase):
 class UserInDBBase(UserBase):
     id: Optional[int] = None
     
-    class Config:
-        from_attributes = True
+    model_config = ConfigDict(from_attributes=True)
 
 # Modelo de respuesta pública de la API
 class User(UserInDBBase):

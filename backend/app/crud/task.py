@@ -34,16 +34,13 @@ def update_task(
     """
     Updates an existing Task object with new data.
     """
-    obj_data = db_obj.dict()
     if isinstance(obj_in, dict):
         update_data = obj_in
     else:
-        # Pydantic utility to get a dict of fields that were set (not None)
-        update_data = obj_in.model_dump(exclude_unset=True)
+        update_data = obj_in.model_dump(exclude_unset=True) 
 
-    for field in obj_data:
-        if field in update_data:
-            setattr(db_obj, field, update_data[field])
+    for field, value in update_data.items():
+        setattr(db_obj, field, value)
 
     db.add(db_obj)
     db.commit()

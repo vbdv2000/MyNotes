@@ -79,19 +79,21 @@ def update_user_endpoint(
     user = crud_user.update_user(db, db_obj=user, obj_in=user_in)
     return user
 
-@router.delete("/{user_id}", response_model=UserSchema)
+@router.delete("/{user_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_user(
     user_id: int,
     db: Session = Depends(get_db)
-) -> Any:
-    """
-    Deletes a user by ID.
-    """
+):
+    """Deletes a user by ID and returns 204 No Content."""
+    
     user = crud_user.get_user(db, user_id=user_id)
+    
     if not user:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="User not found"
         )
+    
     crud_user.delete_user(db, db_obj=user)
-    return user
+    
+    return 
