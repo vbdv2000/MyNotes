@@ -6,10 +6,13 @@ from app.db.base import get_db
 from app.crud import project as crud_project
 from app.crud import user as crud_user
 from app.schemas.project import Project as ProjectSchema, ProjectCreate, ProjectUpdate
+from app.core.security import get_current_user
+from app.schemas.user import User
 
 router = APIRouter(tags=["projects"])
 
 # --- Helper Function for ID Validation ---
+
 
 def check_user_exists(db: Session, user_ids: List[int]):
     """Checks if all IDs in the list exist in the User table."""
@@ -17,90 +20,134 @@ def check_user_exists(db: Session, user_ids: List[int]):
         if not crud_user.get_user(db, user_id=user_id):
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"User ID {user_id} not found."
+                detail=f"User ID {user_id} not found.",
             )
 
+
 # --- CRUD Endpoints ---
+
 
 @router.post("/", response_model=ProjectSchema, status_code=status.HTTP_201_CREATED)
 def create_project_endpoint(
     project_in: ProjectCreate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> Any:
     """
-    Creates a new project, validates owner and initial collaborators.
+    Creates a new project. Only the authenticated user can be the owner.
     """
-    # 1. Validate Owner ID
-    if not crud_user.get_user(db, user_id=project_in.owner_id):
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Owner ID {project_in.owner_id} not found."
-        )
-    
-    # 2. Validate Collaborators if provided
+    project_in.owner_id = current_user.id  # fuerza owner
     if project_in.collaborator_ids:
-        if project_in.owner_id in project_in.collaborator_ids:
+        check_user_exists(db, project_in.collaborator_ids)
+        if current_user.id in project_in.collaborator_ids:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Owner cannot be listed as a collaborator."
+                detail="Owner cannot be listed as a collaborator.",
             )
-        check_user_exists(db, project_in.collaborator_ids)
-    
-    # 3. Create the Project
     project = crud_project.create_project(db, project_in=project_in)
     return project
 
+
 @router.get("/{project_id}", response_model=ProjectSchema)
-def read_project_by_id_endpoint(project_id: int, db: Session = Depends(get_db)) -> Any:
+def read_project_by_id_endpoint(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Any:
     """
-    Retrieves a specific project by ID.
+    Retrieves a specific project by ID. Only participants can view.
     """
     project = crud_project.get_project(db, project_id=project_id)
     if not project:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+        )
+
+    # Check if user is owner or collaborator
+    participant_ids = [project.owner_id] + [u.id for u in project.collaborators]
+    if current_user.id not in participant_ids:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="You are not a participant in this project.",
+        )
+
     return project
 
+
 @router.get("/", response_model=List[ProjectSchema])
-def read_all_projects_endpoint(db: Session = Depends(get_db)) -> Any:
+def read_all_projects_endpoint(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Any:
     """
-    Retrieves a list of all projects.
+    Retrieves a list of projects where the current user is owner or collaborator.
     """
     projects = crud_project.get_all_projects(db)
-    return projects
+    # Filter only projects where current_user is owner or collaborator
+    visible_projects = [
+        p
+        for p in projects
+        if current_user.id == p.owner_id
+        or current_user.id in [u.id for u in p.collaborators]
+    ]
+    return visible_projects
+
 
 @router.patch("/{project_id}", response_model=ProjectSchema)
 def update_project_endpoint(
     project_id: int,
     project_in: ProjectUpdate,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
 ) -> Any:
     """
-    Updates an existing project, validating new collaborators if provided.
+    Updates an existing project. Only the owner can update.
     """
     project = crud_project.get_project(db, project_id=project_id)
     if not project:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
-    
-    # Validar Colaboradores si se intenta actualizar la lista (puede ser una lista vacía para limpiar)
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+        )
+
+    if project.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the project owner can update the project.",
+        )
+
+    # Validate collaborators if provided
     if project_in.collaborator_ids is not None:
         if project.owner_id in project_in.collaborator_ids:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Owner cannot be listed as a collaborator."
+                detail="Owner cannot be listed as a collaborator.",
             )
         check_user_exists(db, project_in.collaborator_ids)
-    
+
     updated_project = crud_project.update_project(db, db_obj=project, obj_in=project_in)
     return updated_project
 
+
 @router.delete("/{project_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_project_endpoint(project_id: int, db: Session = Depends(get_db)) -> None:
+def delete_project_endpoint(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
     """
-    Deletes a specific project by ID.
+    Deletes a specific project by ID. Only the owner can delete.
     """
     project = crud_project.get_project(db, project_id=project_id)
     if not project:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found")
-        
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+        )
+
+    if project.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the project owner can delete the project.",
+        )
+
     crud_project.delete_project(db, db_obj=project)
     return
