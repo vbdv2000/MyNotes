@@ -34,7 +34,7 @@ def test_02_create_task_assigned_to_collaborator(client, superuser):
         "/api/users/",
         json={
             "email": "collab@test.com",
-            "password": "pass",
+            "password": "TestPass123!",
             "full_name": "Collaborator",
             "is_superuser": False,
         },
@@ -73,7 +73,7 @@ def test_03_create_task_assigned_to_multiple_members(client, superuser):
         "/api/users/",
         json={
             "email": "collab2@test.com",
-            "password": "pass",
+            "password": "TestPass123!",
             "full_name": "Collaborator2",
             "is_superuser": False,
         },
@@ -112,7 +112,7 @@ def test_04_create_task_assigned_to_unrelated_user_fails(client, superuser):
         "/api/users/",
         json={
             "email": "unrelated@test.com",
-            "password": "pass",
+            "password": "TestPass123!",
             "full_name": "Unrelated",
             "is_superuser": False,
         },

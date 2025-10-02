@@ -16,14 +16,59 @@ router = APIRouter(tags=["users"])
 # --- CRUD Endpoints ---
 
 
-@router.post("/", response_model=UserSchema, status_code=status.HTTP_201_CREATED)
+@router.post(
+    "/",
+    response_model=UserSchema,
+    status_code=status.HTTP_201_CREATED,
+    responses={
+        201: {
+            "description": "User created successfully",
+            "content": {
+                "application/json": {
+                    "example": {
+                        "id": 1,
+                        "email": "newuser@example.com",
+                        "full_name": "New User",
+                        "is_active": True,
+                        "is_superuser": False,
+                    }
+                }
+            },
+        },
+        400: {
+            "description": "Bad Request",
+            "content": {
+                "application/json": {"example": {"detail": "Email already registered"}}
+            },
+        },
+        403: {
+            "description": "Forbidden",
+            "content": {
+                "application/json": {"example": {"detail": "Not enough permissions"}}
+            },
+        },
+    },
+)
 def create_new_user(
     user_in: UserCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ) -> UserSchema:
     """
-    Creates a new user. Optionally, only superusers could create users.
+    Creates a new user in the system.
+
+    **Required Fields:**
+    - email: Valid email address
+    - password: Secure password (min 8 characters)
+
+    **Optional Fields:**
+    - full_name: User's full name
+    - is_active: Whether the account is active (default: true)
+    - is_superuser: Whether the user has admin privileges (default: false)
+
+    **Permissions:**
+    - Only authenticated users can create new users
+    - Superusers can create other superusers
     """
     # Optional: restrict to superusers
     # if not current_user.is_superuser:

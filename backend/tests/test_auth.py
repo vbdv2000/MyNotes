@@ -8,7 +8,7 @@ LOGIN_URL = "/api/auth/login"
 def test_01_login_success(client, superuser):
     user_data = {
         "email": "authuser@test.com",
-        "password": "testpass123",
+        "password": "TestPass123!",
         "full_name": "Auth User",
         "is_superuser": False,
     }
@@ -19,7 +19,7 @@ def test_01_login_success(client, superuser):
     )
 
     resp = client.post(
-        LOGIN_URL, data={"username": "authuser@test.com", "password": "testpass123"}
+        LOGIN_URL, data={"username": "authuser@test.com", "password": "TestPass123!"}
     )
     assert resp.status_code == status.HTTP_200_OK
     assert "access_token" in resp.json()

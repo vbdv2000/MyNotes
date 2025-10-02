@@ -73,7 +73,7 @@ def superuser(db):
     user = User(
         email="admin@test.com",
         full_name="Admin User",
-        hashed_password=get_password_hash("adminpass"),
+        hashed_password=get_password_hash("AdminPass123!"),
         is_active=True,
         is_superuser=True,
     )
@@ -86,7 +86,7 @@ def superuser(db):
 
 
 # --- Helper to create normal users ---
-def create_user(client, token, email, full_name, password="securepassword"):
+def create_user(client, token, email, full_name, password="SecurePass123!"):
     user_data = {
         "email": email,
         "full_name": full_name,

@@ -142,7 +142,7 @@ def test_08_only_owner_can_update_project(client, superuser):
         "/api/users/",
         json={
             "email": "other@test.com",
-            "password": "pass",
+            "password": "TestPass123!",
             "full_name": "Other User",
             "is_superuser": False,
         },
@@ -150,7 +150,8 @@ def test_08_only_owner_can_update_project(client, superuser):
     )
     other_id = other_user.json()["id"]
     login_resp = client.post(
-        "/api/auth/login", data={"username": "other@test.com", "password": "pass"}
+        "/api/auth/login",
+        data={"username": "other@test.com", "password": "TestPass123!"},
     )
     token = login_resp.json()["access_token"]
 
@@ -180,14 +181,15 @@ def test_09_only_owner_can_delete_project(client, superuser):
         "/api/users/",
         json={
             "email": "other2@test.com",
-            "password": "pass",
+            "password": "TestPass123!",
             "full_name": "Other2 User",
             "is_superuser": False,
         },
         headers={"Authorization": f"Bearer {superuser['token']}"},
     )
     login_resp = client.post(
-        "/api/auth/login", data={"username": "other2@test.com", "password": "pass"}
+        "/api/auth/login",
+        data={"username": "other2@test.com", "password": "TestPass123!"},
     )
     token = login_resp.json()["access_token"]
 
