@@ -8,8 +8,56 @@ from app.crud import user as crud_user
 from app.schemas.project import Project as ProjectSchema, ProjectCreate, ProjectUpdate
 from app.core.security import get_current_user
 from app.schemas.user import User
+from app.schemas.task import Task as TaskSchema, TaskCreate
+from app.crud import task as crud_task
 
 router = APIRouter(tags=["projects"])
+
+
+# Incluir el router de tareas con el project_id como dependencia
+@router.post(
+    "/{project_id}/tasks",
+    response_model=TaskSchema,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_project_task(
+    project_id: int,
+    task_in: TaskCreate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    """
+    Creates a new task in the specified project.
+    """
+    project = crud_project.get_project(db, project_id=project_id)
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+        )
+
+    # Only owner or collaborators can create tasks
+    if current_user.id != project.owner_id and current_user.id not in [
+        u.id for u in project.collaborators
+    ]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Not a project participant"
+        )
+
+    # Validate assigned users
+    if task_in.assigned_user_ids:
+        check_user_exists(db, task_in.assigned_user_ids)
+        for user_id in task_in.assigned_user_ids:
+            if user_id not in [project.owner_id] + [
+                u.id for u in project.collaborators
+            ]:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"User {user_id} is not a member of this project",
+                )
+
+    task = crud_task.create_task(db, task_in=task_in, project_id=project_id)
+    return task
+
 
 # --- Helper Function for ID Validation ---
 

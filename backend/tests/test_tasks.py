@@ -1,6 +1,5 @@
 from fastapi import status
 
-TASK_URL = "/api/tasks/"
 PROJECT_URL = "/api/projects/"
 
 
@@ -10,7 +9,6 @@ def test_01_create_task_assigned_to_owner(client, superuser):
         json={
             "title": "Task Project",
             "description": "Project for task",
-            "owner_id": superuser["id"],
             "collaborator_ids": [],
         },
         headers={"Authorization": f"Bearer {superuser['token']}"},
@@ -21,11 +19,10 @@ def test_01_create_task_assigned_to_owner(client, superuser):
         "title": "Owner Task",
         "description": "Assigned to owner",
         "status": "todo",
-        "project_id": project_id,
         "assigned_user_ids": [superuser["id"]],
     }
     resp = client.post(
-        TASK_URL,
+        f"{PROJECT_URL}{project_id}/tasks/",
         json=task_data,
         headers={"Authorization": f"Bearer {superuser['token']}"},
     )
@@ -61,11 +58,10 @@ def test_02_create_task_assigned_to_collaborator(client, superuser):
         "title": "Collab Task",
         "description": "Assigned to collaborator",
         "status": "todo",
-        "project_id": project_id,
         "assigned_user_ids": [collab_id],
     }
     resp = client.post(
-        TASK_URL,
+        f"{PROJECT_URL}{project_id}/tasks/",
         json=task_data,
         headers={"Authorization": f"Bearer {superuser['token']}"},
     )
@@ -101,11 +97,10 @@ def test_03_create_task_assigned_to_multiple_members(client, superuser):
         "title": "Multi Task",
         "description": "Assigned to both",
         "status": "todo",
-        "project_id": project_id,
         "assigned_user_ids": [superuser["id"], collab_id],
     }
     resp = client.post(
-        TASK_URL,
+        f"{PROJECT_URL}{project_id}/tasks/",
         json=task_data,
         headers={"Authorization": f"Bearer {superuser['token']}"},
     )
@@ -141,11 +136,10 @@ def test_04_create_task_assigned_to_unrelated_user_fails(client, superuser):
         "title": "Bad Task",
         "description": "Assigned to unrelated",
         "status": "todo",
-        "project_id": project_id,
         "assigned_user_ids": [unrelated_id],
     }
     resp = client.post(
-        TASK_URL,
+        f"{PROJECT_URL}{project_id}/tasks/",
         json=task_data,
         headers={"Authorization": f"Bearer {superuser['token']}"},
     )

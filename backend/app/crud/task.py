@@ -7,23 +7,26 @@ from app.models.task import Task
 from app.models.user import User
 from app.schemas.task import TaskCreate, TaskUpdate
 
+
 def get_task(db: Session, task_id: int) -> Optional[Task]:
     """Retrieves a single task by its ID."""
     stmt = select(Task).where(Task.id == task_id)
     return db.scalar(stmt)
+
 
 def get_tasks(db: Session, skip: int = 0, limit: int = 100) -> List[Task]:
     """Retrieves a list of tasks with pagination."""
     stmt = select(Task).offset(skip).limit(limit)
     return list(db.scalars(stmt))
 
-def create_task(db: Session, task_in: TaskCreate) -> Task:
+
+def create_task(db: Session, task_in: TaskCreate, project_id: int) -> Task:
     """Creates a new task in the database."""
     db_task = Task(
         title=task_in.title,
         description=task_in.description,
         status=task_in.status,
-        project_id=task_in.project_id
+        project_id=project_id,
     )
 
     if task_in.assigned_user_ids:
@@ -37,23 +40,22 @@ def create_task(db: Session, task_in: TaskCreate) -> Task:
     db.refresh(db_task)
     return db_task
 
+
 def update_task(
-    db: Session, 
-    db_obj: Task,
-    obj_in: Union[TaskUpdate, Dict[str, Any]]
+    db: Session, db_obj: Task, obj_in: Union[TaskUpdate, Dict[str, Any]]
 ) -> Task:
     """Updates an existing Task object, handling assignment updates."""
-    
+
     if isinstance(obj_in, dict):
         update_data = obj_in
     else:
-        update_data = obj_in.model_dump(exclude_unset=True) 
+        update_data = obj_in.model_dump(exclude_unset=True)
 
     if "assigned_user_ids" in update_data:
         new_assigned_user_ids = update_data.pop("assigned_user_ids")
-        
+
         db_obj.assigned_users.clear()
-        
+
         if new_assigned_user_ids:
             new_assigned_users = db.scalars(
                 select(User).where(User.id.in_(new_assigned_user_ids))
@@ -67,6 +69,7 @@ def update_task(
     db.commit()
     db.refresh(db_obj)
     return db_obj
+
 
 def delete_task(db: Session, db_obj: Task) -> Task:
     """Deletes a task."""

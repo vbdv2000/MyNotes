@@ -44,12 +44,13 @@ def create_task(
     task_in: TaskCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    project_id: int = None,  # Se inyectará desde la ruta del proyecto
 ):
     """
     Creates a new task assigned to valid project members.
     Only participants of the project can create tasks.
     """
-    project = crud_project.get_project(db, project_id=task_in.project_id)
+    project = crud_project.get_project(db, project_id=project_id)
     if not project:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
@@ -66,9 +67,9 @@ def create_task(
 
     # Validate assigned users
     if task_in.assigned_user_ids:
-        check_users_in_project(db, task_in.project_id, task_in.assigned_user_ids)
+        check_users_in_project(db, project_id, task_in.assigned_user_ids)
 
-    task = crud_task.create_task(db, task_in=task_in)
+    task = crud_task.create_task(db, task_in=task_in, project_id=project_id)
     return task
 
 
