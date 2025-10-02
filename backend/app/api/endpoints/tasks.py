@@ -8,7 +8,7 @@ from app.crud import task as crud_task
 from app.crud import project as crud_project
 
 # Configuración del Router
-router = APIRouter(prefix="/tasks", tags=["tasks"])
+router = APIRouter(tags=["tasks"])
 
 # --- Business Logic Validation Helper ---
 
@@ -22,8 +22,7 @@ def check_assigned_users_validity(db: Session, project_id: int, assigned_user_id
     if not project:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Project not found.")
 
-    valid_user_ids = {project.owner_id}
-    valid_user_ids.update(c.id for c in project.collaborators)
+    valid_user_ids = {project.owner_id} | {c.id for c in project.collaborators}
 
     # 2. Verify each assigned user ID
     for user_id in assigned_user_ids:

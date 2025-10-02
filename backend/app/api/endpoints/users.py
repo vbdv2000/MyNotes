@@ -7,7 +7,7 @@ from app.db.base import get_db
 from app.schemas.user import User as UserSchema, UserCreate, UserUpdate 
 from app.crud import user as crud_user 
 
-router = APIRouter()
+router = APIRouter(tags=["users"])
 
 @router.post("/", response_model=UserSchema, status_code=status.HTTP_201_CREATED)
 def create_new_user(

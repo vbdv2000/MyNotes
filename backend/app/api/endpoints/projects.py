@@ -7,7 +7,7 @@ from app.crud import project as crud_project
 from app.crud import user as crud_user
 from app.schemas.project import Project as ProjectSchema, ProjectCreate, ProjectUpdate
 
-router = APIRouter(prefix="/projects", tags=["projects"])
+router = APIRouter(tags=["projects"])
 
 # --- Helper Function for ID Validation ---
 
