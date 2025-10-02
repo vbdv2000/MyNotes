@@ -18,7 +18,7 @@ def get_tasks(db: Session, skip: int = 0, limit: int = 100) -> List[Task]:
     return list(db.scalars(stmt))
 
 def create_task(db: Session, task_in: TaskCreate) -> Task:
-    """Creates a new task, setting the project and assigned users."""
+    """Creates a new task in the database."""
     db_task = Task(
         title=task_in.title,
         description=task_in.description,

@@ -3,7 +3,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Table
 from sqlalchemy.orm import relationship
 
-from app.db.base import Base
+from db.base import Base
 
 # Table for Many-to-Many relationship between Tasks and Users (Assigned Users)
 task_assigned = Table(
@@ -24,7 +24,7 @@ class Task(Base):
     status = Column(String, default="To Do") # e.g., 'To Do', 'In Progress', 'Done'
 
     # Project
-    project_id = Column(Integer, ForeignKey("project.id"), nullable=False) 
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False) 
     project = relationship("Project", back_populates="tasks")
 
     # (ASSIGNED USERS) - Many-to-Many relationship with Users

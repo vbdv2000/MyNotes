@@ -13,7 +13,7 @@ USER_DATA = {
 USER_URL = "/api/users/"
 
 
-def test_create_user(client):
+def test_01_create_user(client):
     """Test POST /api/users/ to create a user."""
     response = client.post(USER_URL, json=USER_DATA)
     
@@ -26,7 +26,7 @@ def test_create_user(client):
     assert "hashed_password" not in data
 
 
-def test_create_user_duplicate_email(client):
+def test_02_create_user_duplicate_email(client):
     """Test POST /api/users/ for a duplicate email (should fail with 400)."""
     # Create the user first
     client.post(USER_URL, json=USER_DATA)
@@ -38,7 +38,7 @@ def test_create_user_duplicate_email(client):
     assert response.json()["detail"] == "Email already registered."
 
 
-def test_read_users(client):
+def test_03_read_users(client):
     """Test GET /api/users/ to list all users."""
     # Ensure one user exists
     client.post(USER_URL, json=USER_DATA)
@@ -50,7 +50,7 @@ def test_read_users(client):
     assert response.json()[0]["email"] == USER_DATA["email"]
 
 
-def test_read_user_by_id(client):
+def test_04_read_user_by_id(client):
     """Test GET /api/users/{user_id}."""
     # Create user to get an ID
     create_response = client.post(USER_URL, json=USER_DATA)
@@ -62,7 +62,7 @@ def test_read_user_by_id(client):
     assert response.json()["id"] == user_id
 
 
-def test_update_user(client):
+def test_05_update_user(client):
     """Test PATCH /api/users/{user_id}."""
     # Create user
     create_response = client.post(USER_URL, json=USER_DATA)
@@ -76,7 +76,7 @@ def test_update_user(client):
     assert response.json()["full_name"] == "Updated Name"
 
 
-def test_delete_user(client):
+def test_06_delete_user(client):
     """Test DELETE /api/users/{user_id}."""
     # Create user
     create_response = client.post(USER_URL, json=USER_DATA)

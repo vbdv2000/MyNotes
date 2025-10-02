@@ -50,7 +50,7 @@ def created_task_id(client, created_user_id):
 #           CRUD Tests
 # ==============================
 
-def test_create_task(client, created_user_id):
+def test_01_create_task(client, created_user_id):
     """Test POST /api/tasks/ to create a task."""
     data = TASK_DATA.copy()
     data["owner_id"] = created_user_id
@@ -64,7 +64,7 @@ def test_create_task(client, created_user_id):
     assert data["owner_id"] == created_user_id
 
 
-def test_create_task_invalid_user(client):
+def test_02_create_task_invalid_user(client):
     """Test POST /api/tasks/ with a non-existent owner_id (should fail with 404)."""
     data = TASK_DATA.copy()
     data["owner_id"] = 99999 # Non-existent ID
@@ -75,7 +75,7 @@ def test_create_task_invalid_user(client):
     assert "User not found" in response.json()["detail"]
 
 
-def test_read_task_by_id(client, created_task_id):
+def test_03_read_task_by_id(client, created_task_id):
     """Test GET /api/tasks/{task_id}."""
     
     response = client.get(f"{TASK_URL}{created_task_id}")
@@ -85,7 +85,7 @@ def test_read_task_by_id(client, created_task_id):
     assert response.json()["title"] == TASK_DATA["title"]
 
 
-def test_read_tasks_list(client, created_task_id, created_user_id):
+def test_04_read_tasks_list(client, created_task_id, created_user_id):
     """Test GET /api/tasks/ to list all tasks."""
     # created_task_id fixture ensures at least one task exists.
     
@@ -96,7 +96,7 @@ def test_read_tasks_list(client, created_task_id, created_user_id):
     assert response.json()[0]["owner_id"] == created_user_id
 
 
-def test_update_task(client, created_task_id):
+def test_05_update_task(client, created_task_id):
     """Test PATCH /api/tasks/{task_id} to update task status and description."""
     
     update_data = {
@@ -112,7 +112,7 @@ def test_update_task(client, created_task_id):
     assert data["status"] == update_data["status"]
 
 
-def test_delete_task(client, created_task_id):
+def test_06_delete_task(client, created_task_id):
     """Test DELETE /api/tasks/{task_id}."""
     
     # 1. Delete the task

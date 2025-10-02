@@ -6,7 +6,8 @@ from sqlalchemy.orm import sessionmaker
 from app.main import app
 from app.db.base import Base, get_db
 
-# Configuración de la Base de Datos de Prueba (SQLite en archivo)
+
+# Configuration of the test database
 SQLALCHEMY_DATABASE_URL = "sqlite:///./test_api.db" 
 
 engine = create_engine(
@@ -29,8 +30,8 @@ def override_get_db():
 @pytest.fixture()
 def db():
     """
-    Crea las tablas, proporciona una sesión y elimina todas las tablas 
-    después de cada test para garantizar aislamiento. (Scope default: function)
+    Creates a new database session for a test.
+    This fixture also creates all tables before the test and drops them after.
     """
     # 1. Crear las tablas (esquema limpio)
     Base.metadata.create_all(bind=engine)
@@ -39,23 +40,21 @@ def db():
     try:
         yield db_session
     finally:
-        # 2. Cerrar la sesión
+        # 2. Close the session
         db_session.close()
-        # 3. Eliminar TODAS las tablas (limpieza total)
+        # 3. Remove all tables
         Base.metadata.drop_all(bind=engine)
 
 
 @pytest.fixture()
-def client(db): # <--- Ahora depende de 'db' para forzar la inicialización
+def client(db):
     """
-    Proporciona un cliente de prueba de FastAPI que usa la base de datos de prueba.
+    Provides a FastAPI test client that uses the test database.
     """
-    # Aplicar el override antes de que el TestClient se ejecute
+    # Apply the override before the TestClient is run
     app.dependency_overrides[get_db] = override_get_db
     
-    # Iniciar el TestClient
     with TestClient(app) as client:
         yield client
 
-    # Limpieza: Eliminar el override después de que el test termine
     app.dependency_overrides.clear()
