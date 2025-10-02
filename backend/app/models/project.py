@@ -1,7 +1,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Table
 from sqlalchemy.orm import relationship
 
-from db.base import Base
+from app.db.base import Base
 
 # Table for Many-to-Many relationship between Projects and Users (Collaborators)
 project_collaborator = Table(

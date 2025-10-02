@@ -3,9 +3,9 @@
 from sqlalchemy import Column, Integer, String, Boolean
 from sqlalchemy.orm import relationship
 
-from db.base import Base
-from models.project import project_collaborator 
-from models.task import task_assigned
+from app.db.base import Base
+from app.models.project import project_collaborator 
+from app.models.task import task_assigned
 
 class User(Base):
     """

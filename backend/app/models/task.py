@@ -3,7 +3,7 @@
 from sqlalchemy import Column, Integer, String, ForeignKey, Table
 from sqlalchemy.orm import relationship
 
-from db.base import Base
+from app.db.base import Base
 
 # Table for Many-to-Many relationship between Tasks and Users (Assigned Users)
 task_assigned = Table(
