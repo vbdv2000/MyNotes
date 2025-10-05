@@ -1,35 +1,70 @@
 # backend/app/models/task.py
 
-from sqlalchemy import Column, Integer, String, ForeignKey, Table
+from datetime import datetime
+from sqlalchemy import Column, Integer, String, ForeignKey, Table, DateTime, Enum
 from sqlalchemy.orm import relationship
 
 from app.db.base import Base
+from app.models.attachment import TaskAttachment  # Import TaskAttachment model
+from app.models.notification import Notification  # Import Notification model
+import enum
+
+
+class TaskPriority(str, enum.Enum):
+    LOW = "low"
+    MEDIUM = "medium"
+    HIGH = "high"
+    URGENT = "urgent"
+
 
 # Table for Many-to-Many relationship between Tasks and Users (Assigned Users)
 task_assigned = Table(
-    'task_assigned', Base.metadata,
-    Column('task_id', Integer, ForeignKey('tasks.id'), primary_key=True),
-    Column('user_id', Integer, ForeignKey('users.id'), primary_key=True)
+    "task_assigned",
+    Base.metadata,
+    Column("task_id", Integer, ForeignKey("tasks.id"), primary_key=True),
+    Column("user_id", Integer, ForeignKey("users.id"), primary_key=True),
 )
+
 
 class Task(Base):
     """
     SQLAlchemy model for the 'tasks' table.
     """
+
     __tablename__ = "tasks"
 
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True, nullable=False)
     description = Column(String)
-    status = Column(String, default="To Do") # e.g., 'To Do', 'In Progress', 'Done'
+    status = Column(String, default="To Do")  # e.g., 'To Do', 'In Progress', 'Done'
+    priority = Column(Enum(TaskPriority), default=TaskPriority.MEDIUM)
+    due_date = Column(DateTime)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Project
-    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False) 
+    project_id = Column(Integer, ForeignKey("projects.id"), nullable=False)
     project = relationship("Project", back_populates="tasks")
 
     # (ASSIGNED USERS) - Many-to-Many relationship with Users
     assigned_users = relationship(
-        "User", 
-        secondary=task_assigned, 
-        back_populates="assigned_tasks"
+        "User", secondary=task_assigned, back_populates="assigned_tasks"
+    )
+
+    # Tags
+    tags = relationship("Tag", secondary="task_tag", back_populates="tasks")
+
+    # Attachments
+    attachments = relationship(
+        "TaskAttachment", back_populates="task", cascade="all, delete-orphan"
+    )
+
+    # History
+    history = relationship(
+        "TaskHistory", back_populates="task", cascade="all, delete-orphan"
+    )
+
+    # Notifications
+    notifications = relationship(
+        "Notification", back_populates="task", cascade="all, delete-orphan"
     )

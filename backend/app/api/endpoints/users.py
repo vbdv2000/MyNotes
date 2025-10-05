@@ -52,7 +52,6 @@ router = APIRouter(tags=["users"])
 def create_new_user(
     user_in: UserCreate,
     db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
 ) -> UserSchema:
     """
     Creates a new user in the system.

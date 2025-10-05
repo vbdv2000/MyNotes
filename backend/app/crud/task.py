@@ -20,12 +20,16 @@ def get_tasks(db: Session, skip: int = 0, limit: int = 100) -> List[Task]:
     return list(db.scalars(stmt))
 
 
-def create_task(db: Session, task_in: TaskCreate, project_id: int) -> Task:
+def create_task(
+    db: Session, task_in: TaskCreate, project_id: int, current_user_id: int = None
+) -> Task:
     """Creates a new task in the database."""
     db_task = Task(
         title=task_in.title,
         description=task_in.description,
         status=task_in.status,
+        priority=task_in.priority,
+        due_date=task_in.due_date,
         project_id=project_id,
     )
 
@@ -35,14 +39,38 @@ def create_task(db: Session, task_in: TaskCreate, project_id: int) -> Task:
         ).all()
         db_task.assigned_users.extend(assigned_users)
 
+    if task_in.tag_ids:
+        from app.models.tag import Tag
+
+        tags = db.scalars(select(Tag).where(Tag.id.in_(task_in.tag_ids))).all()
+        db_task.tags.extend(tags)
+
     db.add(db_task)
     db.commit()
     db.refresh(db_task)
+
+    # Create history entry for task creation
+    if current_user_id:
+        from app.models.history import TaskHistory
+
+        history = TaskHistory(
+            task_id=db_task.id,
+            user_id=current_user_id,
+            field_name="status",
+            old_value=None,
+            new_value=task_in.status,
+        )
+        db.add(history)
+        db.commit()
+
     return db_task
 
 
 def update_task(
-    db: Session, db_obj: Task, obj_in: Union[TaskUpdate, Dict[str, Any]]
+    db: Session,
+    db_obj: Task,
+    obj_in: Union[TaskUpdate, Dict[str, Any]],
+    current_user_id: int = None,
 ) -> Task:
     """Updates an existing Task object, handling assignment updates."""
 
@@ -51,18 +79,53 @@ def update_task(
     else:
         update_data = obj_in.model_dump(exclude_unset=True)
 
+    # Store original values for history
+    original_values = {
+        "status": db_obj.status,
+        "priority": db_obj.priority,
+        "title": db_obj.title,
+        "description": db_obj.description,
+        "due_date": db_obj.due_date,
+    }
+
     if "assigned_user_ids" in update_data:
         new_assigned_user_ids = update_data.pop("assigned_user_ids")
-
         db_obj.assigned_users.clear()
-
         if new_assigned_user_ids:
             new_assigned_users = db.scalars(
                 select(User).where(User.id.in_(new_assigned_user_ids))
             ).all()
             db_obj.assigned_users.extend(new_assigned_users)
 
+    if "tag_ids" in update_data:
+        from app.models.tag import Tag
+
+        new_tag_ids = update_data.pop("tag_ids")
+        db_obj.tags.clear()
+        if new_tag_ids:
+            new_tags = db.scalars(select(Tag).where(Tag.id.in_(new_tag_ids))).all()
+            db_obj.tags.extend(new_tags)
+
     for field, value in update_data.items():
+        if (
+            field in original_values
+            and original_values[field] != value
+            and current_user_id
+        ):
+            # Create history entry for each changed field
+            from app.models.history import TaskHistory
+
+            history = TaskHistory(
+                task_id=db_obj.id,
+                user_id=current_user_id,
+                field_name=field,
+                old_value=str(original_values[field])
+                if original_values[field]
+                else None,
+                new_value=str(value) if value else None,
+            )
+            db.add(history)
+
         setattr(db_obj, field, value)
 
     db.add(db_obj)

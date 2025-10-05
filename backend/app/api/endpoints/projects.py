@@ -8,8 +8,10 @@ from app.crud import user as crud_user
 from app.schemas.project import Project as ProjectSchema, ProjectCreate, ProjectUpdate
 from app.core.security import get_current_user
 from app.schemas.user import User
-from app.schemas.task import Task as TaskSchema, TaskCreate
+from app.schemas.task import Task as TaskSchema, TaskCreate, TaskUpdate
+from app.schemas.history import History
 from app.crud import task as crud_task
+from app.models.tag import Tag
 
 router = APIRouter(tags=["projects"])
 
@@ -55,8 +57,110 @@ def create_project_task(
                     detail=f"User {user_id} is not a member of this project",
                 )
 
-    task = crud_task.create_task(db, task_in=task_in, project_id=project_id)
+    # Validate tags if provided
+    if task_in.tag_ids:
+        existing_tags = db.query(Tag).filter(Tag.id.in_(task_in.tag_ids)).all()
+        if len(existing_tags) != len(task_in.tag_ids):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Some tags do not exist"
+            )
+
+    task = crud_task.create_task(
+        db=db, task_in=task_in, project_id=project_id, current_user_id=current_user.id
+    )
     return task
+
+
+@router.put("/{project_id}/tasks/{task_id}", response_model=TaskSchema)
+def update_project_task(
+    project_id: int,
+    task_id: int,
+    task_in: TaskUpdate,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    """
+    Updates an existing task in the project.
+    """
+    project = crud_project.get_project(db, project_id=project_id)
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+        )
+
+    task = crud_task.get_task(db, task_id=task_id)
+    if not task or task.project_id != project_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found in this project",
+        )
+
+    # Only owner or collaborators can update tasks
+    if current_user.id != project.owner_id and current_user.id not in [
+        u.id for u in project.collaborators
+    ]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Not a project participant"
+        )
+
+    # Validate assigned users if provided
+    if task_in.assigned_user_ids is not None:
+        check_user_exists(db, task_in.assigned_user_ids)
+        for user_id in task_in.assigned_user_ids:
+            if user_id not in [project.owner_id] + [
+                u.id for u in project.collaborators
+            ]:
+                raise HTTPException(
+                    status_code=status.HTTP_400_BAD_REQUEST,
+                    detail=f"User {user_id} is not a member of this project",
+                )
+
+    # Validate tags if provided
+    if task_in.tag_ids is not None:
+        existing_tags = db.query(Tag).filter(Tag.id.in_(task_in.tag_ids)).all()
+        if len(existing_tags) != len(task_in.tag_ids):
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST, detail="Some tags do not exist"
+            )
+
+    task = crud_task.update_task(
+        db=db, db_obj=task, obj_in=task_in, current_user_id=current_user.id
+    )
+    return task
+
+
+@router.get("/{project_id}/tasks/{task_id}/history", response_model=List[History])
+def get_task_history(
+    project_id: int,
+    task_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    """
+    Get the history of changes for a specific task.
+    """
+    project = crud_project.get_project(db, project_id=project_id)
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+        )
+
+    task = crud_task.get_task(db, task_id=task_id)
+    if not task or task.project_id != project_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found in this project",
+        )
+
+    # Only owner or collaborators can view history
+    if current_user.id != project.owner_id and current_user.id not in [
+        u.id for u in project.collaborators
+    ]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Not a project participant"
+        )
+
+    return task.history
 
 
 # --- Helper Function for ID Validation ---

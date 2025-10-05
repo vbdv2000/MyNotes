@@ -178,3 +178,31 @@ def delete_task(
 
     crud_task.delete_task(db, db_obj=task)
     return
+
+
+@router.get("/{task_id}/history", status_code=status.HTTP_200_OK)
+def get_task_history(
+    task_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    """
+    Get the history of changes for a specific task.
+    Only project participants can view the history.
+    """
+    task = crud_task.get_task(db, task_id)
+    if not task:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Task not found"
+        )
+
+    project = crud_project.get_project(db, task.project_id)
+    if current_user.id != project.owner_id and current_user.id not in [
+        u.id for u in project.collaborators
+    ]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Not a project participant",
+        )
+
+    return task.history
