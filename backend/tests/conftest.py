@@ -85,16 +85,32 @@ def superuser(db):
     return {"id": user.id, "email": user.email, "token": token}
 
 
-# --- Helper to create normal users ---
-def create_user(client, token, email, full_name, password="SecurePass123!"):
-    user_data = {
-        "email": email,
-        "full_name": full_name,
-        "password": password,
-        "is_superuser": False,
-    }
-    resp = client.post(
-        "/api/users/", json=user_data, headers={"Authorization": f"Bearer {token}"}
+# --- Normal User Fixture ---
+@pytest.fixture(scope="function")
+def normal_user(db):
+    """
+    Create a normal user directly in the test database.
+    """
+    user = User(
+        email="user@test.com",
+        full_name="Normal User",
+        hashed_password=get_password_hash("SecurePass123!"),
+        is_active=True,
+        is_superuser=False,
     )
-    assert resp.status_code == 201
-    return resp.json()
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+
+    token = create_access_token({"user_id": user.id})
+    return {"id": user.id, "email": user.email, "token": token}
+
+
+# --- Normal User Headers Fixture ---
+# Este es el fixture que el test attachments.py está buscando.
+@pytest.fixture(scope="function")
+def normal_user_token_headers(normal_user):
+    """
+    Provides the Authorization headers for the normal user.
+    """
+    return {"Authorization": f"Bearer {normal_user['token']}"}

@@ -1,5 +1,4 @@
 from fastapi import status
-import pytest
 
 USER_URL = "/api/users/"
 LOGIN_URL = "/api/auth/login"
@@ -34,4 +33,4 @@ def test_02_login_fail_wrong_credentials(client):
 
 def test_03_login_fail_missing_fields(client):
     resp = client.post(LOGIN_URL, data={"username": "authuser@test.com"})
-    assert resp.status_code == status.HTTP_422_UNPROCESSABLE_ENTITY
+    assert resp.status_code == status.HTTP_422_UNPROCESSABLE_CONTENT

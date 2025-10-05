@@ -8,10 +8,12 @@ from app.core.validators import validate_password, PasswordValidationError
 class UserBase(BaseModel):
     id: Optional[int] = Field(None, description="Unique identifier of the user")
     email: EmailStr = Field(
-        ..., description="User's email address", example="user@example.com"
+        ...,
+        description="User's email address",
+        json_schema_extra={"example": "user@example.com"},
     )
     full_name: Optional[str] = Field(
-        None, description="User's full name", example="John Doe"
+        None, description="User's full name", json_schema_extra={"example": "John Doe"}
     )
 
     model_config = ConfigDict(from_attributes=True)
@@ -34,7 +36,7 @@ class UserCreate(UserBase):
         - Contain at least one number
         - Contain at least one special character
         """,
-        example="SecurePass123!",
+        json_schema_extra={"example": "SecurePass123!"},
     )
     is_active: bool = Field(True, description="Whether the user account is active")
     is_superuser: bool = Field(

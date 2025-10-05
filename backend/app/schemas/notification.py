@@ -16,11 +16,9 @@ class NotificationBase(BaseModel):
     type: NotificationType
     title: str
     message: str
-    read: bool = False
 
 
 class NotificationCreate(NotificationBase):
-    user_id: int
     related_task_id: Optional[int] = None
     related_project_id: Optional[int] = None
 
@@ -29,6 +27,7 @@ class Notification(NotificationBase):
     id: int
     user_id: int
     created_at: datetime
+    read: bool = False
     read_at: Optional[datetime] = None
     related_task_id: Optional[int] = None
     related_project_id: Optional[int] = None
