@@ -1,5 +1,6 @@
 from typing import List, Optional
 from datetime import datetime
+from fastapi.params import Query
 from sqlalchemy.orm import Session
 from sqlalchemy import select, update
 
@@ -28,8 +29,8 @@ def create_notification(
 def get_user_notifications(
     db: Session,
     user_id: int,
-    skip: int = 0,
-    limit: int = 100,
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=1, le=200),
     unread_only: bool = False,
     notification_type: Optional[str] = None,
 ) -> List[Notification]:

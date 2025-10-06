@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 from sqlalchemy.orm import Session
 from typing import List, Any
 
@@ -17,6 +17,71 @@ router = APIRouter(tags=["projects"])
 
 
 # Incluir el router de tareas con el project_id como dependencia
+@router.get("/{project_id}/tasks", response_model=List[TaskSchema])
+def get_project_tasks(
+    project_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=1, le=200),
+) -> Any:
+    """
+    Retrieve tasks for a specific project
+    """
+    project = crud_project.get_project(db, project_id=project_id)
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+        )
+
+    # Check if user is owner or collaborator
+    if current_user.id != project.owner_id and current_user.id not in [
+        u.id for u in project.collaborators
+    ]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Not a project participant"
+        )
+
+    tasks = crud_task.get_project_tasks(
+        db, project_id=project_id, skip=skip, limit=limit
+    )
+    return tasks
+
+
+@router.get("/{project_id}/tasks/{task_id}", response_model=TaskSchema)
+def get_project_task(
+    project_id: int,
+    task_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> Any:
+    """
+    Get a specific task from a project
+    """
+    project = crud_project.get_project(db, project_id=project_id)
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+        )
+
+    task = crud_task.get_task(db, task_id=task_id)
+    if not task or task.project_id != project_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found in this project",
+        )
+
+    # Check if user is owner or collaborator
+    if current_user.id != project.owner_id and current_user.id not in [
+        u.id for u in project.collaborators
+    ]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN, detail="Not a project participant"
+        )
+
+    return task
+
+
 @router.post(
     "/{project_id}/tasks",
     response_model=TaskSchema,
@@ -129,6 +194,40 @@ def update_project_task(
     return task
 
 
+@router.delete("/{project_id}/tasks/{task_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_project_task(
+    project_id: int,
+    task_id: int,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+) -> None:
+    """
+    Deletes a task from a project.
+    """
+    project = crud_project.get_project(db, project_id=project_id)
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+        )
+
+    task = crud_task.get_task(db, task_id=task_id)
+    if not task or task.project_id != project_id:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Task not found in this project",
+        )
+
+    # Only project owner can delete tasks
+    if project.owner_id != current_user.id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Only the project owner can delete tasks",
+        )
+
+    crud_task.delete_task(db, task)
+    return None
+
+
 @router.get("/{project_id}/tasks/{task_id}/history", response_model=List[History])
 def get_task_history(
     project_id: int,
@@ -230,11 +329,13 @@ def read_project_by_id_endpoint(
 def read_all_projects_endpoint(
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
+    skip: int = Query(default=0, ge=0),
+    limit: int = Query(default=100, ge=1, le=200),
 ) -> Any:
     """
     Retrieves a list of projects where the current user is owner or collaborator.
     """
-    projects = crud_project.get_all_projects(db)
+    projects = crud_project.get_all_projects(db, skip=skip, limit=limit)
     # Filter only projects where current_user is owner or collaborator
     visible_projects = [
         p

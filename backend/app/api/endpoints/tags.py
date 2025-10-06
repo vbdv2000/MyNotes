@@ -11,7 +11,7 @@ from app.schemas.user import User
 import re
 
 # Router configuration
-router = APIRouter(prefix="/api/tags", tags=["tags"])
+router = APIRouter(tags=["tags"])
 
 # Constants
 COLOR_PATTERN = r"^#[0-9A-Fa-f]{6}$"

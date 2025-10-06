@@ -14,8 +14,19 @@ def get_task(db: Session, task_id: int) -> Optional[Task]:
     return db.scalar(stmt)
 
 
+def get_project_tasks(
+    db: Session, project_id: int, skip: int = 0, limit: int = 100
+) -> List[Task]:
+    """Retrieves tasks from a specific project with pagination."""
+    stmt = select(Task).where(Task.project_id == project_id).offset(skip).limit(limit)
+    return list(db.scalars(stmt))
+
+
 def get_tasks(db: Session, skip: int = 0, limit: int = 100) -> List[Task]:
-    """Retrieves a list of tasks with pagination."""
+    """
+    Retrieves all tasks across all projects with pagination.
+    Note: This method should be used cautiously and ideally replaced with get_project_tasks.
+    """
     stmt = select(Task).offset(skip).limit(limit)
     return list(db.scalars(stmt))
 
