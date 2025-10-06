@@ -188,32 +188,22 @@ def test_08_get_tasks_by_tag(client, normal_user_token_headers, test_task, sampl
     assert any(t["id"] == test_task["id"] for t in data)
 
 
-def test_09_tag_count(client, normal_user_token_headers):
-    """Test getting total tag count."""
-    # Create some tags
-    for i in range(3):
-        client.post(
-            TAGS_URL,
-            headers=normal_user_token_headers,
-            json={"name": f"Count Tag {i}", "color": "#000000"},
-        )
-
-    response = client.get(f"{TAGS_URL}/count", headers=normal_user_token_headers)
-    assert response.status_code == status.HTTP_200_OK
-    data = response.json()
-    assert "total" in data
-    assert data["total"] >= 3
-
-
-def test_10_error_cases(client, normal_user_token_headers):
+def test_09_error_cases(client, normal_user_token_headers):
     """Test various error cases."""
     # Test invalid tag ID
     response = client.get(f"{TAGS_URL}/99999", headers=normal_user_token_headers)
     assert response.status_code == status.HTTP_404_NOT_FOUND
 
+    temp_tag = client.post(
+        TAGS_URL,
+        headers=normal_user_token_headers,
+        json={"name": "Temp Tag for Color", "color": "#123456"},
+    ).json()
+    temp_tag_id = temp_tag["id"]
+
     # Test invalid color format in update
     response = client.put(
-        f"{TAGS_URL}/1",
+        f"{TAGS_URL}/{temp_tag_id}",
         headers=normal_user_token_headers,
         json={"color": "invalid-color"},
     )

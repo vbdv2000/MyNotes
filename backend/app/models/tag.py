@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Table, ForeignKey
+from datetime import datetime
+from sqlalchemy import Column, DateTime, Integer, String, Table, ForeignKey
 from sqlalchemy.orm import relationship
 from app.db.base import Base
 
@@ -24,6 +25,8 @@ class Tag(Base):
     id = Column(Integer, primary_key=True, index=True)
     name = Column(String, index=True, nullable=False, unique=True)
     color = Column(String, default="#808080")  # Default gray color in hex
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
     # Relationships
     tasks = relationship("Task", secondary=task_tag, back_populates="tags")

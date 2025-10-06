@@ -3,6 +3,9 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from app.db.base import get_db
 from app.schemas.tag import TagCreate, TagUpdate, Tag as TagSchema
+from app.schemas.task import (
+    Task as TaskSchema,
+)
 from app.models.tag import Tag
 from app.crud import tag as crud_tag
 from app.crud import task as crud_task
@@ -61,18 +64,6 @@ def get_tags(
     Retrieve tags with optional search and pagination.
     """
     return crud_tag.get_tags(db, skip=skip, limit=limit, search=search)
-
-
-@router.get("/count", response_model=dict)
-def get_tags_count(
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-):
-    """
-    Get total count of tags.
-    """
-    count = crud_tag.get_tags_count(db)
-    return {"total": count}
 
 
 @router.get("/{tag_id}", response_model=TagSchema)
@@ -142,7 +133,7 @@ def delete_tag(
     crud_tag.delete_tag(db, tag_id=tag_id)
 
 
-@router.get("/{tag_id}/tasks", response_model=List[dict])
+@router.get("/{tag_id}/tasks", response_model=List[TaskSchema])
 def get_tasks_by_tag(
     tag_id: int,
     db: Session = Depends(get_db),

@@ -31,6 +31,22 @@ def get_tasks(db: Session, skip: int = 0, limit: int = 100) -> List[Task]:
     return list(db.scalars(stmt))
 
 
+def get_tasks_by_tag(
+    db: Session, tag_id: int, skip: int = 0, limit: int = 100
+) -> List[Task]:
+    """Retrieves tasks associated with a specific tag."""
+    from app.models.tag import Tag
+
+    stmt = (
+        select(Task)
+        .join(Tag, Task.tags)
+        .where(Tag.id == tag_id)
+        .offset(skip)
+        .limit(limit)
+    )
+    return list(db.scalars(stmt))
+
+
 def create_task(
     db: Session, task_in: TaskCreate, project_id: int, current_user_id: int = None
 ) -> Task:
@@ -69,7 +85,7 @@ def create_task(
             user_id=current_user_id,
             field_name="status",
             old_value=None,
-            new_value=task_in.status,
+            new_value=f"Task created with status: {task_in.status}",
         )
         db.add(history)
         db.commit()

@@ -1,3 +1,4 @@
+from sqlalchemy import select
 from typing import List, Optional
 from sqlalchemy.orm import Session
 
@@ -6,11 +7,18 @@ from app.schemas.tag import TagCreate, TagUpdate
 
 
 def get_tag(db: Session, tag_id: int) -> Optional[Tag]:
-    return db.query(Tag).filter(Tag.id == tag_id).first()
+    stmp = select(Tag).where(Tag.id == tag_id)
+    return db.scalar(stmp)
 
 
-def get_tags(db: Session, skip: int = 0, limit: int = 100) -> List[Tag]:
-    return db.query(Tag).offset(skip).limit(limit).all()
+def get_tags(
+    db: Session, skip: int = 0, limit: int = 100, search: Optional[str] = None
+) -> List[Tag]:
+    stmp = select(Tag).offset(skip).limit(limit)
+    if search:
+        stmp = stmp.where(Tag.name.ilike(f"%{search}%"))
+
+    return list(db.scalars(stmp))
 
 
 def create_tag(db: Session, *, tag_in: TagCreate) -> Tag:
