@@ -6,7 +6,6 @@ from enum import Enum
 from app.schemas.user import UserBase
 from app.schemas.tag import Tag
 from app.schemas.history import History
-from app.schemas.attachment import Attachment
 
 
 class TaskPriority(str, Enum):
@@ -58,7 +57,6 @@ class Task(TaskBase):
     updated_at: datetime
     assigned_users: List[UserBase] = []
     tags: List[Tag] = []
-    attachments: List[Attachment] = []
     history: List[History] = []
 
     model_config = ConfigDict(from_attributes=True)

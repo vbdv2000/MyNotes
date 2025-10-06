@@ -13,7 +13,6 @@ import app.models.task  # noqa: F401
 import app.models.notification  # noqa: F401
 import app.models.tag  # noqa: F401
 import app.models.history  # noqa: F401
-import app.models.attachment  # noqa: F401
 
 # Load environment variables from secrets/dev.env
 load_dotenv(

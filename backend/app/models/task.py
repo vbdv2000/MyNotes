@@ -5,7 +5,6 @@ from sqlalchemy import Column, Integer, String, ForeignKey, Table, DateTime, Enu
 from sqlalchemy.orm import relationship
 
 from app.db.base import Base
-from app.models.attachment import TaskAttachment  # Import TaskAttachment model
 from app.models.notification import Notification  # Import Notification model
 import enum
 
@@ -53,11 +52,6 @@ class Task(Base):
 
     # Tags
     tags = relationship("Tag", secondary="task_tag", back_populates="tasks")
-
-    # Attachments
-    attachments = relationship(
-        "TaskAttachment", back_populates="task", cascade="all, delete-orphan"
-    )
 
     # History
     history = relationship(
