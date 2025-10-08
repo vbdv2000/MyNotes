@@ -1,9 +1,14 @@
 import { createRouter, createWebHistory } from "vue-router";
-import AppLayout from '@/layouts/AppLayout.vue'; // Nuevo Layout
+import AppLayout from '@/layouts/AppLayout.vue';
 import ProfileView from "../views/ProfileView.vue";
 import LoginView from "../views/LoginView.vue";
 import RegisterView from "../views/RegisterView.vue";
-import { useAuthStore } from "@/stores/auth";
+import ProjectsView from "../views/ProjectsView.vue";
+import KanbanView from "../views/KanbanView.vue";
+import NotificationsView from "../views/NotificationsView.vue";
+import TagsView from "../views/TagsView.vue";
+
+import { useAuthStore } from "../stores/auth";
 
 const routes = [
   { path: "/login", name: "Login", component: LoginView },
@@ -13,24 +18,23 @@ const routes = [
     component: AppLayout,
     meta: { requiresAuth: true },
     children: [
+      { path: '', name: 'Home', component: ProfileView, meta: { title: 'Dashboard' } },
+
+      // Vista de todos los proyectos
+      { path: 'projects', name: 'Projects', component: ProjectsView, meta: { title: 'Todos los Proyectos' } },
+
+      // Vista del tablero Kanban por ID de proyecto (Punto Clave)
       {
-        path: '',
-        name: 'Home',
-        component: ProfileView,
-        meta: { title: 'Dashboard' }
+        path: 'projects/:id/kanban',
+        name: 'ProjectKanban',
+        component: KanbanView,
+        meta: { title: 'Tablero Kanban' }
       },
-      {
-        path: 'projects',
-        name: 'Projects',
-        component: ProfileView,
-        meta: { title: 'Projects' }
-      },
-      {
-        path: 'profile',
-        name: 'Profile',
-        component: ProfileView,
-        meta: { title: 'Profile' }
-      },
+
+      // Otras utilidades
+      { path: 'notifications', name: 'Notifications', component: NotificationsView, meta: { title: 'Notificaciones' } },
+      { path: 'tags', name: 'Tags', component: TagsView, meta: { title: 'Gestión de Tags' } },
+      { path: 'profile', name: 'Profile', component: ProfileView, meta: { title: 'Perfil' } },
     ]
   },
 ];

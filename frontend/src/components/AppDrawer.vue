@@ -28,23 +28,38 @@
       />
       
       <v-list-item 
-        prepend-icon="mdi-format-list-bulleted-square" 
-        title="Proyectos" 
+        prepend-icon="mdi-view-column" 
+        title="Projects" 
         value="projects" 
         :to="{ name: 'Projects' }"
         active-class="text-primary"
       />
       
       <v-list-item 
-        prepend-icon="mdi-account-cog-outline" 
-        title="Perfil y Ajustes" 
-        value="profile" 
-        :to="{ name: 'Profile' }"
+        prepend-icon="mdi-bell-outline" 
+        title="Notifications" 
+        value="notifications" 
+        :to="{ name: 'Notifications' }"
         active-class="text-primary"
       />
       
       <v-divider class="my-3"></v-divider>
 
+      <v-list-item 
+        prepend-icon="mdi-tag-multiple-outline" 
+        title="Tags Management" 
+        value="tags" 
+        :to="{ name: 'Tags' }"
+        active-class="text-primary"
+      />
+      <v-list-item 
+        prepend-icon="mdi-account-cog-outline" 
+        title="Settings" 
+        value="profile" 
+        :to="{ name: 'Profile' }"
+        active-class="text-primary"
+      />
+      
       <v-list-item 
         prepend-icon="mdi-logout" 
         title="Log out" 
@@ -60,5 +75,4 @@
 import { useAuthStore } from '@/stores/auth';
 
 const auth = useAuthStore();
-// Nota: La redirección a /login tras logout ya está en el store auth.ts
 </script>
