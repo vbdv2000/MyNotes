@@ -1,6 +1,7 @@
 import { defineStore } from "pinia";
 import api from "@/api/axios";
 import { jwtDecode } from "jwt-decode";
+import router from "@/router";
 
 interface FastAPIValidationError {
     type: string;
@@ -9,6 +10,14 @@ interface FastAPIValidationError {
     input: any;
     ctx?: any;
 }
+
+interface User {
+    id: number;
+    email: string;
+    full_name: string;
+    is_superuser: boolean;
+}
+
 
 function handleApiError(err: any): string {
     const responseData = err.response?.data;
@@ -36,7 +45,7 @@ function handleApiError(err: any): string {
 export const useAuthStore = defineStore("auth", {
     state: () => ({
         token: localStorage.getItem("token") || "",
-        user: null as null | { id: number; email: string; full_name: string },
+        user: null as null | User,
         loading: false,
         error: null,
     }),
@@ -98,8 +107,12 @@ export const useAuthStore = defineStore("auth", {
         },
         logout() {
             this.token = "";
+            this.currentUserId = null;
             this.user = null;
             localStorage.removeItem("token");
+            localStorage.removeItem("user_id");
+
+            router.push({ name: 'Login' });
         },
     },
 });

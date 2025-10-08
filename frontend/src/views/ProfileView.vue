@@ -1,36 +1,60 @@
 <template>
-  <v-container>
-    <v-card class="mx-auto" max-width="600" title="Información Personal">
-      
-      <v-card-text v-if="authStore.user">
-        <v-list density="compact">
-          <v-list-item prepend-icon="mdi-account" :title="authStore.user.full_name" subtitle="Nombre Completo"></v-list-item>
-          <v-list-item prepend-icon="mdi-email" :title="authStore.user.email" subtitle="Email"></v-list-item>
-          <v-divider></v-divider>
-          <v-list-item prepend-icon="mdi-identifier" :title="authStore.user.id.toString()" subtitle="ID de Usuario"></v-list-item>
-        </v-list>
+  <v-container class="pt-10">
+    <v-card class="mx-auto elevation-10" max-width="800" color="grey-darken-3">
+      <v-card-title class="text-h4 font-weight-bold pa-5 text-green-accent-3">
+        Personal Information
+      </v-card-title>
+
+      <v-divider></v-divider>
+
+      <v-card-text v-if="auth.user">        
+        <v-row dense class="mb-3">
+          <v-col cols="12" sm="6">
+            <v-card variant="tonal" color="green-accent-3" class="pa-3">
+              <div class="text-overline">Full Name</div>
+              <div class="text-h6">{{ auth.user.full_name }}</div>
+            </v-card>
+          </v-col>
+          <v-col cols="12" sm="6">
+            <v-card variant="tonal" color="green-accent-3" class="pa-3">
+              <div  class="text-overline">User / Email</div>
+              <div class="text-h6">{{ auth.user.email }}</div>
+            </v-card>
+          </v-col>
+        </v-row>
+        
+        <v-row v-if="auth.user.is_superuser" dense class="mb-4">
+          <v-col cols="12">
+            <v-alert 
+              type="success" 
+              color="green-darken-3" 
+              icon="mdi-shield-crown" 
+              variant="tonal"
+              title="Superuser permissions"
+            >
+              You have superuser permissions and can manage other resources.
+            </v-alert>
+          </v-col>
+        </v-row>
+        
+        <v-divider class="my-4"></v-divider>
+
       </v-card-text>
-
-      <v-card-actions>
-        <v-spacer></v-spacer>
-        <v-btn color="red-darken-1" @click="authStore.logout" prepend-icon="mdi-logout">Cerrar Sesión</v-btn>
-      </v-card-actions>
-
-      <v-skeleton-loader v-if="authStore.loading && !authStore.user" type="list-item-two-line, divider, list-item-two-line"></v-skeleton-loader>
-      <v-alert v-if="!authStore.user && !authStore.loading" type="info">Cargando datos del usuario...</v-alert>
     </v-card>
+
+    <v-skeleton-loader v-if="auth.loading && !auth.user" class="mx-auto mt-10" max-width="800" type="article"></v-skeleton-loader>
   </v-container>
 </template>
 
 <script setup lang="ts">
-import { useAuthStore } from '@/stores/auth';
-import { onMounted } from 'vue';
+import { useAuthStore } from "@/stores/auth";
+import { onMounted } from "vue";
 
-const authStore = useAuthStore();
+const auth = useAuthStore();
 
 onMounted(() => {
-    if (!authStore.user) {
-        authStore.fetchUser();
+    if (auth.isAuthenticated && !auth.user) {
+        auth.fetchUser();
     }
 });
 </script>
