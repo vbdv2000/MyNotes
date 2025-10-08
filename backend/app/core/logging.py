@@ -9,33 +9,29 @@ log_dir.mkdir(exist_ok=True)
 # Configurar el formato del log
 log_format = logging.Formatter("%(asctime)s - %(name)s - %(levelname)s - %(message)s")
 
+
+def add_handlers(logger, filename):
+    file_handler = logging.FileHandler(log_dir / filename)
+    file_handler.setFormatter(log_format)
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(log_format)
+    logger.addHandler(file_handler)
+    logger.addHandler(stream_handler)
+    logger.setLevel(logging.INFO)
+
+
 # Log para acciones de autenticación
 auth_logger = logging.getLogger("auth")
-auth_handler = logging.FileHandler(log_dir / "auth.log")
-auth_handler.setFormatter(log_format)
-auth_logger.addHandler(auth_handler)
-auth_logger.setLevel(logging.INFO)
+add_handlers(auth_logger, "auth.log")
 
-# Log para acciones de usuario
 user_logger = logging.getLogger("user")
-user_handler = logging.FileHandler(log_dir / "user.log")
-user_handler.setFormatter(log_format)
-user_logger.addHandler(user_handler)
-user_logger.setLevel(logging.INFO)
+add_handlers(user_logger, "user.log")
 
-# Log para acciones de proyecto
 project_logger = logging.getLogger("project")
-project_handler = logging.FileHandler(log_dir / "project.log")
-project_handler.setFormatter(log_format)
-project_logger.addHandler(project_handler)
-project_logger.setLevel(logging.INFO)
+add_handlers(project_logger, "project.log")
 
-# Log para acciones de tareas
 task_logger = logging.getLogger("task")
-task_handler = logging.FileHandler(log_dir / "task.log")
-task_handler.setFormatter(log_format)
-task_logger.addHandler(task_handler)
-task_logger.setLevel(logging.INFO)
+add_handlers(task_logger, "task.log")
 
 
 def log_auth_event(event_type: str, user_email: str, success: bool, ip: str = None):

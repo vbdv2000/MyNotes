@@ -1,9 +1,12 @@
 # backend/app/main.py
 
+import logging
 from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.api import api_router
 from app.db.base import Base, engine, SessionLocal
+from app.core.config import CORS_ORIGINS
 
 # Import all models to ensure they are registered with SQLAlchemy's Base
 from app.models.user import User
@@ -61,6 +64,15 @@ app = FastAPI(
             "description": "Task operations. Create, update, and manage tasks within projects.",
         },
     ],
+)
+logging.warning(f"CORS_ORIGINS: {CORS_ORIGINS}")
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=CORS_ORIGINS,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
 

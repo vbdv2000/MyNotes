@@ -28,6 +28,8 @@ services:
       - ./secrets/dev.env
     depends_on:
       - db
+    environment:
+      - BACKEND_CORS_ORIGINS=http://localhost:5173
 
 volumes:
   dev-db-data:
