@@ -25,6 +25,13 @@ task_assigned = Table(
 )
 
 
+class TaskStatus(str, enum.Enum):
+    TODO = "todo"
+    IN_PROGRESS = "in_progress"
+    REVIEW = "review"
+    DONE = "done"
+
+
 class Task(Base):
     """
     SQLAlchemy model for the 'tasks' table.
@@ -35,7 +42,7 @@ class Task(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True, nullable=False)
     description = Column(String)
-    status = Column(String, default="To Do")  # e.g., 'To Do', 'In Progress', 'Done'
+    status = Column(Enum(TaskStatus), default=TaskStatus.TODO)
     priority = Column(Enum(TaskPriority), default=TaskPriority.MEDIUM)
     due_date = Column(DateTime)
     created_at = Column(DateTime, default=datetime.utcnow)

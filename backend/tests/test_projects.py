@@ -349,7 +349,7 @@ def test_14_update_project_task(client, superuser):
     # Update task
     update_data = {
         "title": "Updated Task",
-        "status": "in-progress",
+        "status": "in_progress",
         "priority": "high",
     }
     resp = client.put(
@@ -447,7 +447,7 @@ def test_17_task_history_on_update(client, superuser):
     # Update status
     client.put(
         f"{PROJECT_URL}{project['id']}/tasks/{task['id']}",
-        json={"status": "in-progress"},
+        json={"status": "in_progress"},
         headers={"Authorization": f"Bearer {superuser['token']}"},
     )
 

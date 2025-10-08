@@ -16,12 +16,17 @@ class TaskPriority(str, Enum):
 
 
 # --- Base Schema ---
+class TaskStatus(str, Enum):
+    TODO = "todo"
+    IN_PROGRESS = "in_progress"
+    REVIEW = "review"  # Estado clave para Kanban
+    DONE = "done"
 
 
 class TaskBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
     description: Optional[str] = None
-    status: Literal["todo", "in-progress", "done"] = "todo"
+    status: TaskStatus = TaskStatus.TODO
     priority: TaskPriority = TaskPriority.MEDIUM
     due_date: Optional[datetime] = None
 
