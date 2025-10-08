@@ -1,0 +1,22 @@
+# Usa una imagen oficial de Python como base.
+FROM python:3.11-slim
+
+# Establece el directorio de trabajo en /app.
+WORKDIR /app
+
+# Copia los archivos de requerimientos e instálalos usando uv.
+# Esto se hace primero para aprovechar el caché de Docker.
+# Si requirements.txt no cambia, esta capa no se reconstruirá.
+COPY ./backend/requirements.txt .
+RUN pip install uv
+RUN uv pip install -r requirements.txt --system
+
+# Copia el resto del código de la aplicación.
+# Esta capa solo se invalidará si el código de la app cambia.
+COPY ./backend/app /app/app
+
+# Expón el puerto donde correrá Uvicorn.
+EXPOSE 8000
+
+# Define el comando para ejecutar la aplicación.
+CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
