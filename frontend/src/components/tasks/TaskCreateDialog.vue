@@ -20,12 +20,58 @@
         />
 
         <v-select
-          v-model="newTask.priority"
-          :items="priorityOptions"
-          label="Prioridad"
-          required
-          class="mb-3"
-        />
+          v-model="newTask.tag_ids"
+          :items="taskStore.projectTags"
+          item-title="name"
+          item-value="id"
+          label="Tags"
+          placeholder="Selecciona etiquetas (Opcional)"
+          multiple
+          chips
+          clearable
+          :loading="tagsLoading"
+        >
+          <template v-slot:chip="{ props, item }">
+            <v-chip
+              v-bind="props"
+              :color="item.raw.color || 'blue-grey-lighten-2'"
+              size="small"
+              :text="item.raw.name"
+              label
+              class="text-black"
+            ></v-chip>
+          </template>
+          <template v-slot:item="{ props, item }">
+            <v-list-item v-bind="props">
+              <v-chip
+                :color="item.raw.color || 'blue-grey-lighten-2'"
+                size="small"
+                :text="item.raw.name"
+                class="ms-2 text-black"
+                label
+              ></v-chip>
+            </v-list-item>
+          </template>
+        </v-select>
+
+        <v-label>Prioridad</v-label>
+        <v-btn-toggle
+            v-model="newTask.priority"
+            color="primary"
+            mandatory
+            class="mb-3"
+            group
+        >
+            <v-btn
+                v-for="p in priorityOptions"
+                :key="p.value"
+                :value="p.value"
+                :color="p.color"
+            >
+                <v-icon :icon="p.icon" class="me-2"></v-icon>
+                {{ p.title }}
+            </v-btn>
+        </v-btn-toggle>
 
         <v-select
           v-model="newTask.assigned_user_id"
@@ -61,8 +107,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
-import { useTaskStore, Task } from '@/stores/task'; // Asegúrate de la importación
+import { ref, onMounted } from 'vue'; // 💡 Importar onMounted
+import { useTaskStore, Task } from '@/stores/task'; 
 import { VCard, VCardTitle, VCardText, VForm, VTextField, VTextarea, VSelect, VAlert, VCardActions, VSpacer } from 'vuetify/components';
 
 // Definición de Props y Emits
@@ -75,23 +121,42 @@ const emit = defineEmits(['taskCreated', 'close']);
 // --- Store y Estado ---
 const taskStore = useTaskStore();
 const loading = ref(false);
+const tagsLoading = ref(false); // 💡 Nuevo estado para la carga de tags
 const error = ref('');
 
 // Estructura inicial de la nueva tarea
 const newTask = ref({
     title: '',
     description: '',
-    priority: 'medium', // Valor por defecto
+    priority: 'medium',
     assigned_user_id: null as number | null,
-    // El status (todo) y el project_id se añaden en submitTask
+    tag_ids: [] as number[], // 💡 Inicializar el array de tags
 });
 
 const priorityOptions = [
-    { title: 'Urgente', value: 'urgent' },
-    { title: 'Alta', value: 'high' },
-    { title: 'Media', value: 'medium' },
-    { title: 'Baja', value: 'low' },
+    { title: 'Baja', value: 'low', color: 'green', icon: 'mdi-check' },
+    { title: 'Media', value: 'medium', color: 'blue', icon: 'mdi-minus' },    
+    { title: 'Alta', value: 'high', color: 'orange', icon: 'mdi-alert' },
+    { title: 'Urgente', value: 'urgent', color: 'red', icon: 'mdi-fire' },
+
 ];
+
+// --- Lifecycle y Carga de Datos ---
+onMounted(() => {
+    // 💡 Cargar las tags disponibles para este proyecto cuando se monta el diálogo
+    fetchTags();
+});
+
+const fetchTags = async () => {
+    tagsLoading.value = true;
+    try {
+        await taskStore.fetchProjectTags(props.projectId);
+    } catch (e) {
+        console.error("No se pudieron cargar las tags.");
+    } finally {
+        tagsLoading.value = false;
+    }
+};
 
 // --- Lógica de Creación ---
 const submitTask = async () => {
@@ -100,26 +165,26 @@ const submitTask = async () => {
     loading.value = true;
     error.value = '';
 
-    // Datos que se enviarán al Store
+    // Datos que se enviarán al Store (INCLUYENDO tag_ids)
     const payload = {
         ...newTask.value,
         project_id: props.projectId,
-        status: 'todo', // Nueva tarea siempre empieza en TO DO
+        status: 'todo' as const, 
+        // 💡 tag_ids se incluye automáticamente desde newTask.value
     };
 
     try {
-        // 💡 Llama a la acción del store para crear la tarea
         const createdTask: Task = await taskStore.createTask(payload);
 
-        // Notifica a KanbanView.vue que la tarea fue creada y cierra el diálogo
         emit('taskCreated', createdTask);
         
-        // Resetear el formulario
+        // Resetear el formulario (incluyendo tags)
         newTask.value = {
             title: '',
             description: '',
             priority: 'medium',
             assigned_user_id: null,
+            tag_ids: [], // Resetear las tags
         };
 
     } catch (err) {

@@ -10,10 +10,10 @@ import enum
 
 
 class TaskPriority(str, enum.Enum):
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    URGENT = "urgent"
+    low = "low"
+    medium = "medium"
+    high = "high"
+    urgent = "urgent"
 
 
 # Table for Many-to-Many relationship between Tasks and Users (Assigned Users)
@@ -26,10 +26,10 @@ task_assigned = Table(
 
 
 class TaskStatus(str, enum.Enum):
-    TODO = "todo"
-    IN_PROGRESS = "in_progress"
-    REVIEW = "review"
-    DONE = "done"
+    todo = "todo"
+    in_progress = "in_progress"
+    review = "review"
+    done = "done"
 
 
 class Task(Base):
@@ -42,8 +42,8 @@ class Task(Base):
     id = Column(Integer, primary_key=True, index=True)
     title = Column(String, index=True, nullable=False)
     description = Column(String)
-    status = Column(Enum(TaskStatus), default=TaskStatus.TODO)
-    priority = Column(Enum(TaskPriority), default=TaskPriority.MEDIUM)
+    status = Column(Enum(TaskStatus), default=TaskStatus.todo)
+    priority = Column(Enum(TaskPriority), default=TaskPriority.medium)
     due_date = Column(DateTime)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

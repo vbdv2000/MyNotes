@@ -3,7 +3,14 @@
     
     <div class="d-flex justify-space-between align-center mb-6">
       <h1 class="text-h4 font-weight-bold">
-        Tablero Kanban (Proyecto ID: {{ projectId }})
+         {{ taskStore.currentProject?.name || `Proyecto ID: ${projectId}` }}
+         <v-btn
+            icon="mdi-cog"
+            variant="text"
+            size="small"
+            class="ms-2"
+            @click="goToProjectSettings"
+          />
       </h1>
       <v-btn 
         color="primary" 
@@ -58,9 +65,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
-import { useTaskStore, Task } from '@/stores/task'; // Asegúrate de que 'Task' se exporta desde tu store
+import { useTaskStore, Task } from '@/stores/task';
 import KanbanColumn from '@/components/tasks/KanbanColumn.vue';
-import TaskCreateDialog from '@/components/tasks/TaskCreateDialog.vue'; // Componente que debes crear
+import TaskCreateDialog from '@/components/tasks/TaskCreateDialog.vue';
 import { VRow, VCol, VContainer, VAlert, VSkeletonLoader, VDialog } from 'vuetify/components';
 
 // --- Setup y State ---
@@ -69,13 +76,14 @@ const route = useRoute();
 const router = useRouter();
 const taskStore = useTaskStore();
 
-const projectId = computed(() => Number(route.params.projectId));
+// Lee el parámetro 'id' de la ruta (corregido de la conversación anterior)
+const projectId = computed(() => Number(route.params.id));
 const loading = ref(true);
 const error = ref('');
 const isCreateDialogOpen = ref(false);
 
-// La lista de todas las tareas del proyecto
-const projectTasks = ref<Task[]>([]);
+// Ya no necesitamos 'const projectTasks = computed(() => taskStore.tasks);'
+// Usamos taskStore.tasks directamente.
 
 // Definición de las columnas del tablero
 const statusDefinitions = [
@@ -87,11 +95,20 @@ const statusDefinitions = [
 
 // --- Computed Properties ---
 
+const goToProjectSettings = () => {
+  router.push({
+    name: 'ProjectSettings', // 💡 Asegúrate de que esta ruta existe
+    params: { projectId: projectId.value },
+  });
+};
+
 // Filtra las tareas para la columna dada
-const getTasksByStatus = (statusKey: typeof statusDefinitions[number]['key']): Task[] => {
-  return projectTasks.value
+const getTasksByStatus = (statusKey: string): Task[] => {
+  // taskStore.tasks es reactivo y siempre se actualizará con los datos del store
+  return taskStore.tasks 
     .filter(task => task.status === statusKey)
-    .sort((a, b) => (a.order || 0) - (b.order || 0)); // Asumiendo un campo 'order'
+    // 💡 Opcional: Añadir un sort() aquí si quieres ordenar por 'order'
+    .sort((a, b) => (a.order || 0) - (b.order || 0)); 
 };
 
 // --- Lifecycle y Data Fetching ---
@@ -100,9 +117,8 @@ const fetchProjectTasks = async () => {
   loading.value = true;
   error.value = '';
   try {
-    // 💡 Llama a la acción del store para obtener las tareas del proyecto
-    const tasks = await taskStore.fetchTasks(projectId.value); 
-    projectTasks.value = tasks;
+    // 💡 Llamamos a la acción. El store actualiza taskStore.tasks internamente.
+    await taskStore.fetchTasks(projectId.value); 
   } catch (err) {
     error.value = 'Error al cargar las tareas del proyecto.';
     console.error(err);
@@ -113,6 +129,9 @@ const fetchProjectTasks = async () => {
 
 onMounted(() => {
   if (projectId.value) {
+    // 💡 Cargar detalles del proyecto para el título, etc. (Si tienes la acción)
+    taskStore.fetchProjectDetails(projectId.value); 
+    // 💡 Cargar las tareas
     fetchProjectTasks();
   }
 });
@@ -125,19 +144,19 @@ onMounted(() => {
  */
 const handleTaskMove = async ({ taskId, newStatus }: { taskId: number, newStatus: typeof statusDefinitions[number]['key'] }) => {
   try {
-    // 1. Optimistic UI Update: Actualizar localmente antes de la respuesta del servidor
-    const taskIndex = projectTasks.value.findIndex(t => t.id === taskId);
-    if (taskIndex !== -1) {
-        projectTasks.value[taskIndex].status = newStatus;
+    // 1. Optimistic UI Update: Actualizar localmente el estado del store
+    const task = taskStore.tasks.find(t => t.id === taskId);
+    if (task) {
+        task.status = newStatus;
     }
 
     // 2. Llamada al Store para persistir el cambio
-    await taskStore.updateTaskStatus(taskId, newStatus);
+    await taskStore.updateTaskStatus(projectId.value, taskId, newStatus);
     
   } catch (err) {
     error.value = 'Error al mover la tarea.';
     console.error(err);
-    // 3. Revertir la UI si la llamada falla (Opcional, pero recomendado)
+    // 3. Revertir la UI forzando una recarga si la llamada falla
     fetchProjectTasks(); 
   }
 };
@@ -146,14 +165,10 @@ const handleTaskMove = async ({ taskId, newStatus }: { taskId: number, newStatus
  * Maneja el reordenamiento de tareas dentro de una columna.
  */
 const handleTaskReorder = async (statusKey: typeof statusDefinitions[number]['key'], updatedList: Task[]) => {
-    // Reemplaza la lista de tareas local solo para esa columna (lo hace v-model)
-    // El orden de los elementos en updatedList ya refleja el nuevo orden en la UI.
-    
-    // 💡 Aquí implementarías la lógica para actualizar el campo 'order' en tu backend
-    // 1. Obtener los IDs y el nuevo orden
+    // Lógica para actualizar el orden en el backend
     const newOrder = updatedList.map((task, index) => ({ id: task.id, order: index }));
     
-    // 2. Llamada al Store (Función que debes implementar: updateTaskOrder)
+    // 💡 Aquí necesitarías llamar a una acción en el store:
     // await taskStore.updateTaskOrder(statusKey, newOrder);
 };
 
@@ -163,7 +178,7 @@ const handleTaskReorder = async (statusKey: typeof statusDefinitions[number]['ke
  */
 const handleEditTask = (taskId: number) => {
   router.push({ 
-    name: 'TaskEdit', // 💡 Asegúrate de que esta ruta esté definida en tu router
+    name: 'TaskEdit',
     params: { 
         projectId: projectId.value, 
         taskId: taskId 
@@ -176,24 +191,21 @@ const handleEditTask = (taskId: number) => {
  */
 const handleTaskCreated = () => {
   isCreateDialogOpen.value = false;
-  fetchProjectTasks(); // Recarga la lista completa para mostrar la nueva tarea
+  fetchProjectTasks(); 
 };
 
 </script>
 
 <style scoped>
 .kanban-board-container {
-  /* Permite que el contenido se estire más allá del ancho estándar de v-container */
   max-width: none; 
 }
 .kanban-board-row {
-  /* Asegura que las columnas floten y no tengan saltos de línea innecesarios */
   flex-wrap: nowrap;
   overflow-x: auto;
   min-height: 70vh;
   padding-bottom: 20px;
 }
-/* Estilo para navegadores basados en Webkit (Chrome, Safari) */
 .kanban-board-row::-webkit-scrollbar {
     height: 8px; 
 }

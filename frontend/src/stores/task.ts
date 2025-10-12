@@ -18,6 +18,16 @@ export interface Task {
     created_at: string;
 }
 
+interface TaskCreationData {
+    title: string;
+    description?: string;
+    priority: Task['priority'];
+    status: Task['status'];
+    project_id: number;
+    assigned_user_id?: number | null;
+    tag_ids?: number[];
+}
+
 export interface Project {
     id: number;
     name: string;
@@ -32,6 +42,7 @@ export const useTaskStore = defineStore("task", {
     state: () => ({
         projects: [] as Project[],
         tasks: [] as Task[],
+        projectTags: [] as Tag[],
         currentProject: null as Project | null,
         loading: false,
         error: null as string | null,
@@ -76,19 +87,20 @@ export const useTaskStore = defineStore("task", {
             }
         },
 
-        async createTask(projectId: number, data: { title: string, status: Task['status'], assigned_user_ids?: number[] }) {
-            // API: POST /api/projects/{project_id}/tasks
-            await api.post(`/projects/${projectId}/tasks`, data);
-            // Si la creación es exitosa, refrescamos las tareas
+        async createTask(data: TaskCreationData) {
+            const projectId = data.project_id;
+            const res = await api.post(`/projects/${projectId}/tasks`, data);
             await this.fetchTasks(projectId);
+
+            return res.data;
         },
 
         // Acción clave para el Kanban (simulando Drag & Drop)
-        async updateTaskStatus(taskId: number, newStatus: Task['status']) {
+        async updateTaskStatus(projectId: number, taskId: number, newStatus: Task['status']) {
             try {
                 // API: PUT /api/projects/{project_id}/tasks/{task_id} (o PATCH)
                 // Asumimos que el backend puede manejar una actualización de estado simple
-                await api.put(`/projects/0/tasks/${taskId}`, { status: newStatus });
+                await api.put(`/projects/${projectId}/tasks/${taskId}`, { status: newStatus });
 
                 // Actualización optimista del estado local para fluidez
                 const task = this.tasks.find(t => t.id === taskId);
@@ -110,6 +122,18 @@ export const useTaskStore = defineStore("task", {
             } catch (err) {
                 this.error = "Proyecto no encontrado.";
             }
-        }
+        },
+
+        async fetchProjectTags(projectId: number) {
+            try {
+                const res = await api.get(`/projects/${projectId}/tags`);
+                this.projectTags = res.data;
+                return res.data;
+            } catch (err: any) {
+                console.error('Error al cargar tags del proyecto:', err);
+                this.error = "Error al cargar las etiquetas del proyecto.";
+                return [];
+            }
+        },
     },
 });

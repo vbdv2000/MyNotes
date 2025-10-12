@@ -1,29 +1,42 @@
 import axios from "axios";
+import { useAuthStore } from '@/stores/auth'; // 💡 Importar el store de autenticación
 
 const api = axios.create({
     baseURL: import.meta.env.VITE_API_URL || "http://localhost:8000/api",
-    withCredentials: false,
+    headers: {
+        'Content-Type': 'application/json',
+    },
 });
 
-api.interceptors.request.use((config) => {
-    const token = localStorage.getItem("token");
-    if (token) {
-        config.headers = config.headers || {};
-        config.headers.Authorization = `Bearer ${token}`;
+api.interceptors.request.use(
+    (config) => {
+        const authStore = useAuthStore();
+
+        if (authStore.token) {
+            config.headers.Authorization = `Bearer ${authStore.token}`;
+        }
+
+        return config;
+    },
+    (error) => {
+        return Promise.reject(error);
     }
-    return config;
-});
+);
+
 
 api.interceptors.response.use(
-    response => response,
-    error => {
-        // Solo actuar si el error es 401
+    (response) => {
+        return response;
+    },
+    (error) => {
+        // Manejo de errores 401
         if (error.response && error.response.status === 401) {
-            console.error("401 Unauthorized. Redirecting to login.");
-            localStorage.removeItem('access_token');
-            router.push({ name: 'Login' });
+            console.error('401 Unauthorized. Redirecting to login.');
+
+            const authStore = useAuthStore();
+            authStore.logout();
         }
-        return Promise.reject(error); 
+        return Promise.reject(error);
     }
 );
 

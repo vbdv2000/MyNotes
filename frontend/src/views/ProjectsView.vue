@@ -83,8 +83,8 @@ const dialog = ref(false);
 const newProjectTitle  = ref('');
 const newProjectDescription = ref('');
 
-const goToKanban = (project: { id: number | string }) => {
-  router.push({ name: 'ProjectKanban', params: { id } });
+const goToKanban = (id: number | string) => {
+  router.push({ name: 'ProjectKanban', params: { id: id } });
 };
 
 const createProject = async () => {

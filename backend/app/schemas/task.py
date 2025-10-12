@@ -9,25 +9,25 @@ from app.schemas.history import History
 
 
 class TaskPriority(str, Enum):
-    LOW = "low"
-    MEDIUM = "medium"
-    HIGH = "high"
-    URGENT = "urgent"
+    low = "low"
+    medium = "medium"
+    high = "high"
+    urgent = "urgent"
 
 
 # --- Base Schema ---
 class TaskStatus(str, Enum):
-    TODO = "todo"
-    IN_PROGRESS = "in_progress"
-    REVIEW = "review"  # Estado clave para Kanban
-    DONE = "done"
+    todo = "todo"
+    in_progress = "in_progress"
+    review = "review"  # Estado clave para Kanban
+    done = "done"
 
 
 class TaskBase(BaseModel):
     title: str = Field(..., min_length=1, max_length=200)
     description: Optional[str] = None
-    status: TaskStatus = TaskStatus.TODO
-    priority: TaskPriority = TaskPriority.MEDIUM
+    status: TaskStatus = TaskStatus.todo
+    priority: TaskPriority = TaskPriority.medium
     due_date: Optional[datetime] = None
 
 

@@ -161,7 +161,7 @@ def upgrade() -> None:
     op.add_column("projects", sa.Column("created_at", sa.DateTime(), nullable=True))
     op.add_column("projects", sa.Column("updated_at", sa.DateTime(), nullable=True))
     # Create TaskPriority enum type
-    op.execute("CREATE TYPE taskpriority AS ENUM ('LOW', 'MEDIUM', 'HIGH', 'URGENT')")
+    op.execute("CREATE TYPE taskpriority AS ENUM ('low', 'medium', 'high', 'urgent')")
 
     # Add priority column using the enum type
     op.add_column(
@@ -169,15 +169,15 @@ def upgrade() -> None:
         sa.Column(
             "priority",
             sa.Enum(
-                "LOW",
-                "MEDIUM",
-                "HIGH",
-                "URGENT",
+                "low",
+                "medium",
+                "high",
+                "urgent",
                 name="taskpriority",
                 create_type=False,
             ),
             nullable=True,
-            server_default="MEDIUM",
+            server_default="medium",
         ),
     )
     op.add_column("tasks", sa.Column("due_date", sa.DateTime(), nullable=True))
@@ -193,7 +193,7 @@ def downgrade() -> None:
     op.drop_column("tasks", "created_at")
     op.drop_column("tasks", "due_date")
     op.drop_column("tasks", "priority")
-    op.execute("DROP TYPE taskpriority")
+    op.execute("DROP TYPE taskpriority CASCADE")
     op.drop_column("projects", "updated_at")
     op.drop_column("projects", "created_at")
     op.drop_table("task_tag")
@@ -203,7 +203,7 @@ def downgrade() -> None:
     op.drop_table("task_attachments")
     op.drop_index(op.f("ix_notifications_title"), table_name="notifications")
     op.drop_index(op.f("ix_notifications_id"), table_name="notifications")
-    op.execute("DROP TYPE notificationtype")
+    op.execute("DROP TYPE notificationtype CASCADE")
     op.drop_table("notifications")
     op.drop_table("project_tag")
     op.drop_index(op.f("ix_project_history_id"), table_name="project_history")

@@ -41,8 +41,8 @@ class ProjectUpdate(ProjectBase):
 class Project(ProjectBase):
     id: int
     owner_id: int
-    created_at: datetime
-    updated_at: datetime
+    created_at: datetime | None = None
+    updated_at: datetime | None = None
     owner: UserBase
     collaborators: List[UserBase] = []
     tasks: List[Task] = []

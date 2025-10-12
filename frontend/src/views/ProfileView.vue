@@ -1,7 +1,7 @@
 <template>
   <v-container class="pt-10">
-    <v-card class="mx-auto elevation-10" max-width="800" color="grey-darken-3">
-      <v-card-title class="text-h4 font-weight-bold pa-5 text-green-accent-3">
+    <v-card class="mx-auto elevation-10 text-primary" max-width="800" >
+      <v-card-title class="text-h4 font-weight-bold pa-5 text-primary">
         Personal Information
       </v-card-title>
 
@@ -10,13 +10,13 @@
       <v-card-text v-if="auth.user">        
         <v-row dense class="mb-3">
           <v-col cols="12" sm="6">
-            <v-card variant="tonal" color="green-accent-3" class="pa-3">
+            <v-card variant="tonal" class="pa-3 text-primary">
               <div class="text-overline">Full Name</div>
               <div class="text-h6">{{ auth.user.full_name }}</div>
             </v-card>
           </v-col>
           <v-col cols="12" sm="6">
-            <v-card variant="tonal" color="green-accent-3" class="pa-3">
+            <v-card variant="tonal" class="pa-3 text-primary">
               <div  class="text-overline">User / Email</div>
               <div class="text-h6">{{ auth.user.email }}</div>
             </v-card>
