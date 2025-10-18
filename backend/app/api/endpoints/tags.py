@@ -3,12 +3,8 @@ from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.orm import Session
 from app.db.base import get_db
 from app.schemas.tag import TagCreate, TagUpdate, Tag as TagSchema
-from app.schemas.task import (
-    Task as TaskSchema,
-)
 from app.models.tag import Tag
 from app.crud import tag as crud_tag
-from app.crud import task as crud_task
 from app.core.security import get_current_user
 from app.schemas.user import User
 import re
@@ -131,22 +127,3 @@ def delete_tag(
             status_code=status.HTTP_404_NOT_FOUND, detail="Tag not found"
         )
     crud_tag.delete_tag(db, tag_id=tag_id)
-
-
-@router.get("/{tag_id}/tasks", response_model=List[TaskSchema])
-def get_tasks_by_tag(
-    tag_id: int,
-    db: Session = Depends(get_db),
-    current_user: User = Depends(get_current_user),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=100),
-):
-    """
-    Get all tasks that have this tag.
-    """
-    tag = crud_tag.get_tag(db, tag_id=tag_id)
-    if not tag:
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Tag not found"
-        )
-    return crud_task.get_tasks_by_tag(db, tag_id, skip=skip, limit=limit)
