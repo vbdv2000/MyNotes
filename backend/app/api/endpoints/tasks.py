@@ -147,7 +147,7 @@ def create_project_task(
     return task
 
 
-@router.put("/{project_id}/tasks/{task_id}", response_model=TaskSchema)
+@router.patch("/{project_id}/tasks/{task_id}", response_model=TaskSchema)
 def update_project_task(
     project_id: int,
     task_id: int,
@@ -157,7 +157,7 @@ def update_project_task(
 ) -> Any:
     """
     Updates an existing task in the project.
-    """
+    """ 
     project = crud_project.get_project(db, project_id=project_id)
     if not project:
         raise HTTPException(

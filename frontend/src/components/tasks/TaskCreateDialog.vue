@@ -1,114 +1,105 @@
 <template>
-  <v-card>
-    <v-card-title class="text-h5 primary-title">Crear Nueva Tarea</v-card-title>
-    <v-card-text>
-      <v-form @submit.prevent="submitTask">
-        
-        <v-text-field 
-          v-model="newTask.title" 
-          label="Título de la Tarea" 
-          :rules="[v => !!v || 'El título es obligatorio']" 
-          required 
-          class="mb-3"
-        />
+  <v-dialog
+    :fullscreen="$vuetify.display.xs"
+    max-width="600"
+    transition="dialog-bottom-transition"
+    scrollable
+  >
+    <v-card>
+      <v-card-title class="text-h5 primary-title d-flex align-center">
+        Create New Task
+        <v-spacer v-if="$vuetify.display.xs"></v-spacer>
+        <v-btn v-if="$vuetify.display.xs" icon="mdi-close" variant="text" @click="emit('close')"></v-btn>
+      </v-card-title>
+      
+      <v-card-text>
+        <v-container fluid class="pa-0">
+          <v-form @submit.prevent="submitTask">
+            
+            <v-text-field 
+              v-model="newTask.title" 
+              label="Task Title" 
+              :rules="[v => !!v || 'Title is required']" 
+              required 
+              variant="underlined"
+              class="mb-3"
+            />
 
-        <v-textarea 
-          v-model="newTask.description" 
-          label="Descripción" 
-          rows="3" 
-          class="mb-3"
-        />
+            <v-textarea 
+              v-model="newTask.description" 
+              label="Task Description" 
+              rows="3" 
+              variant="outlined"
+              class="mb-3"
+            />
 
-        <v-select
-          v-model="newTask.tag_ids"
-          :items="taskStore.projectTags"
-          item-title="name"
-          item-value="id"
-          label="Tags"
-          placeholder="Selecciona etiquetas (Opcional)"
-          multiple
-          chips
-          clearable
-          :loading="tagsLoading"
-        >
-          <template v-slot:chip="{ props, item }">
-            <v-chip
-              v-bind="props"
-              :color="item.raw.color || 'blue-grey-lighten-2'"
-              size="small"
-              :text="item.raw.name"
-              label
-              class="text-black"
-            ></v-chip>
-          </template>
-          <template v-slot:item="{ props, item }">
-            <v-list-item v-bind="props">
-              <v-chip
-                :color="item.raw.color || 'blue-grey-lighten-2'"
-                size="small"
-                :text="item.raw.name"
-                class="ms-2 text-black"
-                label
-              ></v-chip>
-            </v-list-item>
-          </template>
-        </v-select>
+            <ProjectTagManager
+              :project-id="projectId"
+              :initial-tag-ids="newTask.tag_ids"
+              @update:tags="handleTagUpdate"
+            />
 
-        <v-label>Prioridad</v-label>
-        <v-btn-toggle
-            v-model="newTask.priority"
-            color="primary"
-            mandatory
-            class="mb-3"
-            group
-        >
-            <v-btn
-                v-for="p in priorityOptions"
-                :key="p.value"
-                :value="p.value"
-                :color="p.color"
+            <v-label class="mt-4">Prioridad</v-label>
+            <v-btn-toggle
+                v-model="newTask.priority"
+                color="primary"
+                mandatory
+                class="mb-3 w-100"
+                group
+                :density="$vuetify.display.xs ? 'compact' : 'default'"
             >
-                <v-icon :icon="p.icon" class="me-2"></v-icon>
-                {{ p.title }}
-            </v-btn>
-        </v-btn-toggle>
+                <v-btn
+                    v-for="p in priorityOptions"
+                    :key="p.value"
+                    :value="p.value"
+                    :color="p.color"
+                    class="flex-grow-1"
+                >
+                    <v-icon :icon="p.icon" class="me-2" size="small"></v-icon>
+                    <span v-if="!$vuetify.display.xs">{{ p.title }}</span>
+                </v-btn>
+            </v-btn-toggle>
 
-        <v-select
-          v-model="newTask.assigned_user_id"
-          :items="[]"
-          label="Asignar a (Opcional)"
-          placeholder="Selecciona un miembro del equipo"
-          clearable
-        />
+            <v-select
+              v-model="newTask.assigned_user_id"
+              :items="[]"
+              label="Assign to (Optional)"
+              placeholder="Select a team member"
+              clearable
+              variant="outlined"
+            />
 
-        <v-alert v-if="error" type="error" class="mt-4">{{ error }}</v-alert>
+            <v-alert v-if="error" type="error" class="mt-4">{{ error }}</v-alert>
 
-        <v-card-actions class="pa-0 mt-4">
-          <v-spacer></v-spacer>
-          <v-btn 
-            variant="text" 
-            @click="emit('close')"
-          >
-            Cancelar
-          </v-btn>
-          <v-btn 
-            type="submit" 
-            color="primary" 
-            :loading="loading"
-            :disabled="!newTask.title"
-            variant="flat"
-          >
-            Crear Tarea
-          </v-btn>
-        </v-card-actions>
-      </v-form>
-    </v-card-text>
-  </v-card>
+            <v-card-actions class="pa-0 mt-4">
+              <v-spacer></v-spacer>
+              <v-btn 
+                variant="text" 
+                @click="emit('close')"
+              >
+                Cancel
+              </v-btn>
+              <v-btn 
+                type="submit" 
+                color="primary" 
+                :loading="loading"
+                :disabled="!newTask.title"
+                variant="flat"
+              >
+                Create Task
+              </v-btn>
+            </v-card-actions>
+          </v-form>
+        </v-container>
+      </v-card-text>
+    </v-card>
+  </v-dialog>
 </template>
 
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'; // 💡 Importar onMounted
-import { useTaskStore, Task } from '@/stores/task'; 
+import { useTaskStore, Task } from '@/stores/task';
+import ProjectTagManager from '@/components/tags/ProjectTagManager.vue';
 import { VCard, VCardTitle, VCardText, VForm, VTextField, VTextarea, VSelect, VAlert, VCardActions, VSpacer } from 'vuetify/components';
 
 // Definición de Props y Emits

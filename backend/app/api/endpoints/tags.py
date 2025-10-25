@@ -4,7 +4,9 @@ from sqlalchemy.orm import Session
 from app.db.base import get_db
 from app.schemas.tag import TagCreate, TagUpdate, Tag as TagSchema
 from app.models.tag import Tag
-from app.crud import tag as crud_tag
+
+# 💡 Asegúrate de tener crud_project para buscar proyectos
+from app.crud import tag as crud_tag, project as crud_project
 from app.core.security import get_current_user
 from app.schemas.user import User
 import re
@@ -16,6 +18,7 @@ router = APIRouter(tags=["tags"])
 COLOR_PATTERN = r"^#[0-9A-Fa-f]{6}$"
 
 
+# --- Utility Functions (Maintain) ---
 def validate_color(color: str) -> None:
     """Validate hex color format."""
     if not re.match(COLOR_PATTERN, color):
@@ -25,83 +28,135 @@ def validate_color(color: str) -> None:
         )
 
 
-@router.post("/", response_model=TagSchema, status_code=status.HTTP_201_CREATED)
-def create_tag(
+# -------------------------------------------------------------------------
+# 💡 ENDPOINTS: Siempre anidados a Project ID
+# -------------------------------------------------------------------------
+
+
+@router.post(
+    "/{project_id}/tags", response_model=TagSchema, status_code=status.HTTP_201_CREATED
+)
+def create_and_associate_tag(
+    project_id: int,
     tag_in: TagCreate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
-    Creates a new tag.
-    Only users with permissions can create tags.
+    Crea una nueva Tag y la asocia inmediatamente al proyecto especificado.
+    Reemplaza el antiguo POST global.
     """
     validate_color(tag_in.color)
 
-    # Check if a tag with this name already exists (case-insensitive)
-    existing_tag = db.query(Tag).filter(Tag.name.ilike(tag_in.name)).first()
-    if existing_tag:
+    # 1. Verificar si el proyecto existe
+    project = crud_project.get_project(db, project_id=project_id)
+    if not project:
         raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"Tag with name {tag_in.name} already exists",
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
         )
 
-    return crud_tag.create_tag(db, tag_in=tag_in)
+    # 2. Reutilizar Tag si existe globalmente por nombre (para mantener unicidad de Tag)
+    tag = crud_tag.get_tag_by_name(db, name=tag_in.name)
+    if not tag:
+        # Crear la Tag si no existe
+        tag = crud_tag.create_tag(db, tag_in=tag_in)
+
+    # 3. Asociar la Tag al Proyecto si aún no está asociada
+    if tag not in project.tags:
+        project.tags.append(tag)
+        db.commit()
+        db.refresh(project)
+
+    return tag
 
 
-@router.get("/", response_model=List[TagSchema])
-def get_tags(
+@router.get("/{project_id}/tags", response_model=List[TagSchema])
+def get_project_tags(
+    project_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    skip: int = Query(0, ge=0),
-    limit: int = Query(100, ge=1, le=100),
     search: Optional[str] = Query(None, description="Search tags by name"),
 ):
     """
-    Retrieve tags with optional search and pagination.
+    Obtiene SÓLO las Tags asociadas al proyecto específico. Reemplaza el antiguo GET global.
     """
-    return crud_tag.get_tags(db, skip=skip, limit=limit, search=search)
+    # 1. Verificar si el proyecto existe
+    project = crud_project.get_project(db, project_id=project_id)
+    if not project:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
+        )
+
+    # 2. Obtener tags (filtradas por búsqueda si es necesario)
+    tags = project.tags
+    if search:
+        search_lower = search.lower()
+        tags = [tag for tag in tags if search_lower in tag.name.lower()]
+
+    # Nota: Si se requiere paginación, debe implementarse aquí también
+    return tags
 
 
-@router.get("/{tag_id}", response_model=TagSchema)
-def get_tag(
+@router.get("/{project_id}/tags/{tag_id}", response_model=TagSchema)
+def get_tag_in_project(
+    project_id: int,
     tag_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
-    Get a specific tag by ID.
+    Obtiene una tag específica si pertenece al proyecto. Reemplaza el GET/{tag_id} global.
     """
-    tag = crud_tag.get_tag(db, tag_id=tag_id)
-    if not tag:
+    # 1. Verificar si el proyecto existe
+    project = crud_project.get_project(db, project_id=project_id)
+    if not project:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Tag not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
         )
+
+    # 2. Buscar la tag y verificar pertenencia al proyecto
+    tag = crud_tag.get_tag(db, tag_id=tag_id)
+    if not tag or tag not in project.tags:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tag not found in this project",
+        )
+
     return tag
 
 
-@router.put("/{tag_id}", response_model=TagSchema)
-def update_tag(
+@router.put("/{project_id}/tags/{tag_id}", response_model=TagSchema)
+def update_tag_in_project(
+    project_id: int,
     tag_id: int,
     tag_in: TagUpdate,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
-    Update a tag.
-    Only users with permissions can update tags.
+    Actualiza una tag existente si pertenece al proyecto. Reemplaza el PUT/{tag_id} global.
     """
-    tag = crud_tag.get_tag(db, tag_id=tag_id)
-    if not tag:
+    # 1. Verificar si el proyecto existe
+    project = crud_project.get_project(db, project_id=project_id)
+    if not project:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Tag not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
         )
 
+    # 2. Buscar la tag y verificar pertenencia al proyecto
+    tag = crud_tag.get_tag(db, tag_id=tag_id)
+    if not tag or tag not in project.tags:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tag not found in this project",
+        )
+
+    # 3. Validaciones de actualización
     if tag_in.color:
         validate_color(tag_in.color)
-
     if tag_in.name and tag_in.name != tag.name:
-        existing_tag = db.query(Tag).filter(Tag.name.ilike(tag_in.name)).first()
-        if existing_tag:
+        existing_tag = crud_tag.get_tag_by_name(db, name=tag_in.name)
+        if existing_tag and existing_tag.id != tag_id:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail=f"Tag with name {tag_in.name} already exists",
@@ -110,20 +165,39 @@ def update_tag(
     return crud_tag.update_tag(db, db_obj=tag, obj_in=tag_in)
 
 
-@router.delete("/{tag_id}", status_code=status.HTTP_204_NO_CONTENT)
-def delete_tag(
+@router.delete("/{project_id}/tags/{tag_id}", status_code=status.HTTP_204_NO_CONTENT)
+def remove_tag_from_project(
+    project_id: int,
     tag_id: int,
     db: Session = Depends(get_db),
     current_user: User = Depends(get_current_user),
 ):
     """
-    Delete a tag.
-    Only users with permissions can delete tags.
-    Will remove the tag from all tasks and projects.
+    Elimina la asociación de una Tag con el proyecto.
+    Si la Tag ya no está asociada a ningún proyecto/tarea, puede ser eliminada completamente (lógica a añadir en CRUD).
+    Reemplaza el DELETE/{tag_id} global.
     """
-    tag = crud_tag.get_tag(db, tag_id=tag_id)
-    if not tag:
+    # 1. Verificar si el proyecto existe
+    project = crud_project.get_project(db, project_id=project_id)
+    if not project:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND, detail="Tag not found"
+            status_code=status.HTTP_404_NOT_FOUND, detail="Project not found"
         )
-    crud_tag.delete_tag(db, tag_id=tag_id)
+
+    # 2. Buscar la tag y verificar pertenencia al proyecto
+    tag = crud_tag.get_tag(db, tag_id=tag_id)
+    if not tag or tag not in project.tags:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tag not found in this project",
+        )
+
+    # 3. Eliminar la asociación (Many-to-Many)
+    project.tags.remove(tag)
+    db.commit()
+
+    # 💡 Lógica opcional de limpieza: Si la tag ya no está en uso en NINGÚN proyecto/tarea, eliminarla de la DB.
+    if not tag.projects and not tag.tasks:
+        crud_tag.delete_tag(db, tag_id=tag_id)
+
+    return

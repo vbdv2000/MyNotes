@@ -3,21 +3,20 @@
     
     <div class="d-flex justify-space-between align-center mb-6">
       <h1 class="text-h4 font-weight-bold">
-         {{ taskStore.currentProject?.name || `Proyecto ID: ${projectId}` }}
-         <v-btn
+          {{ taskStore.currentProject?.title || `Project ID: ${projectId}` }}
+          <v-btn
             icon="mdi-cog"
             variant="text"
             size="small"
             class="ms-2"
-            @click="goToProjectSettings"
-          />
+            @click="isEditDialogOpen = true" />
       </h1>
       <v-btn 
         color="primary" 
         prepend-icon="mdi-plus" 
         @click="isCreateDialogOpen = true"
       >
-        Añadir Tarea
+        Add Task
       </v-btn>
     </div>
 
@@ -58,6 +57,20 @@
             @close="isCreateDialogOpen = false"
         />
     </v-dialog>
+    
+    <v-dialog
+        v-model="isEditDialogOpen"
+        :fullscreen="$vuetify.display.xs"
+        max-width="800"
+    >
+        <ProjectEditDialog 
+            v-if="isEditDialogOpen"
+            :project-id="projectId"
+            v-model="isEditDialogOpen"
+            @projectUpdated="handleProjectUpdated"
+            @close="isEditDialogOpen = false"
+        />
+    </v-dialog>
 
   </v-container>
 </template>
@@ -68,6 +81,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useTaskStore, Task } from '@/stores/task';
 import KanbanColumn from '@/components/tasks/KanbanColumn.vue';
 import TaskCreateDialog from '@/components/tasks/TaskCreateDialog.vue';
+import ProjectEditDialog from '@/components/projects/ProjectEditDialog.vue';
 import { VRow, VCol, VContainer, VAlert, VSkeletonLoader, VDialog } from 'vuetify/components';
 
 // --- Setup y State ---
@@ -81,9 +95,7 @@ const projectId = computed(() => Number(route.params.id));
 const loading = ref(true);
 const error = ref('');
 const isCreateDialogOpen = ref(false);
-
-// Ya no necesitamos 'const projectTasks = computed(() => taskStore.tasks);'
-// Usamos taskStore.tasks directamente.
+const isEditDialogOpen = ref(false);
 
 // Definición de las columnas del tablero
 const statusDefinitions = [
@@ -94,14 +106,6 @@ const statusDefinitions = [
 ] as const;
 
 // --- Computed Properties ---
-
-const goToProjectSettings = () => {
-  router.push({
-    name: 'ProjectSettings', // 💡 Asegúrate de que esta ruta existe
-    params: { projectId: projectId.value },
-  });
-};
-
 // Filtra las tareas para la columna dada
 const getTasksByStatus = (statusKey: string): Task[] => {
   // taskStore.tasks es reactivo y siempre se actualizará con los datos del store
@@ -113,28 +117,35 @@ const getTasksByStatus = (statusKey: string): Task[] => {
 
 // --- Lifecycle y Data Fetching ---
 
-const fetchProjectTasks = async () => {
-  loading.value = true;
-  error.value = '';
-  try {
-    // 💡 Llamamos a la acción. El store actualiza taskStore.tasks internamente.
-    await taskStore.fetchTasks(projectId.value); 
-  } catch (err) {
-    error.value = 'Error al cargar las tareas del proyecto.';
-    console.error(err);
-  } finally {
-    loading.value = false;
-  }
+const fetchProjectData = async () => {
+    loading.value = true;
+    error.value = '';
+    try {
+        // Cargar tareas
+        await taskStore.fetchTasks(projectId.value); 
+        // Cargar detalles del proyecto para el título y el diálogo de edición
+        await taskStore.fetchProjectDetails(projectId.value);
+    } catch (err) {
+        error.value = 'Error al cargar los datos del proyecto.';
+        console.error(err);
+    } finally {
+        loading.value = false;
+    }
 };
 
 onMounted(() => {
-  if (projectId.value) {
-    // 💡 Cargar detalles del proyecto para el título, etc. (Si tienes la acción)
-    taskStore.fetchProjectDetails(projectId.value); 
-    // 💡 Cargar las tareas
-    fetchProjectTasks();
-  }
+    if (projectId.value) {
+        fetchProjectData();
+    }
 });
+
+const handleProjectUpdated = () => {
+    // 1. Cerrar el diálogo
+    isEditDialogOpen.value = false;
+    // 2. Recargar los detalles del proyecto para actualizar el título/UI
+    taskStore.fetchProjectDetails(projectId.value);
+    // Nota: El ProjectEditDialog ya ha guardado los cambios en el store (tags, colaboradores).
+};
 
 
 // --- Lógica de Interacción ---
@@ -157,7 +168,7 @@ const handleTaskMove = async ({ taskId, newStatus }: { taskId: number, newStatus
     error.value = 'Error al mover la tarea.';
     console.error(err);
     // 3. Revertir la UI forzando una recarga si la llamada falla
-    fetchProjectTasks(); 
+    fetchProjectData(); 
   }
 };
 
@@ -191,7 +202,7 @@ const handleEditTask = (taskId: number) => {
  */
 const handleTaskCreated = () => {
   isCreateDialogOpen.value = false;
-  fetchProjectTasks(); 
+  fetchProjectData(); 
 };
 
 </script>
