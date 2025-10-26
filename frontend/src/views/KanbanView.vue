@@ -52,9 +52,10 @@
       max-width="600"
     >
         <TaskCreateDialog 
-            :project-id="projectId"
-            @taskCreated="handleTaskCreated"
-            @close="isCreateDialogOpen = false"
+          :project-id="projectId"
+          v-model="isCreateDialogOpen"  
+          @taskCreated="handleTaskCreated"
+          @close="isCreateDialogOpen = false"
         />
     </v-dialog>
     

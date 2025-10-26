@@ -12,12 +12,12 @@
       <div class="d-flex justify-space-between align-start mb-1">
         
         <v-icon
-                :icon="taskPriority.icon"
-                :color="taskPriority.color"
-                size="small"
-                class="me-2 mt-1"
-                :title="taskPriority.label"
-            />
+            :icon="taskPriority.icon"
+            :color="taskPriority.color"
+            size="small"
+            class="me-2 mt-1"
+            :title="taskPriority.label"
+        />
         
         <div class="text-subtitle-1 font-weight-bold flex-grow-1 text-truncate">
           {{ task.title }}
@@ -44,28 +44,27 @@
 
     <v-card-actions class="pa-0 d-flex justify-space-between align-center px-2">
       
-      <div class="d-flex overflow-x-auto">
+      <div class="d-flex overflow-x-auto align-center flex-grow-1 tag-list">
         <v-chip
-          v-for="tag in task.tags.slice(0, 2)"
-          :key="tag.id"
+          v-for="tag in task.tags.slice(0, 3)" :key="tag.id"
           size="x-small"
           label
-          class="mr-1 text-black"
-          :color="tag.color || 'blue-grey-lighten-2'"
-        >
+          class="mr-1 font-weight-medium"
+          :style="{ 
+            backgroundColor: tag.color, 
+            color: getContrastColor(tag.color) 
+          }" >
           {{ tag.name }}
         </v-chip>
+        
         <v-chip 
-          v-if="task.tags && task.tags.length > 2" 
-          size="x-small" 
+          v-if="task.tags && task.tags.length > 3" size="x-small" 
           label 
-          class="text-black"
-          color="blue-grey-lighten-3"
-        >
-          +{{ task.tags.length - 2 }}
+          class="font-weight-medium"
+          color="grey-darken-2" >
+          +{{ task.tags.length - 3 }}
         </v-chip>
       </div>
-      
       <v-spacer></v-spacer>
 
       <v-avatar-group size="28" max="3">
@@ -130,6 +129,23 @@ const formattedDueDate = computed(() => {
     const date = new Date(props.task.due_date);
     return date.toLocaleDateString('es-ES', { day: '2-digit', month: 'short' });
 });
+
+const getContrastColor = (hex: string): string => {
+    if (!hex || hex.length !== 7) return 'black';
+
+    // Convertir HEX a valores RGB
+    const r = parseInt(hex.slice(1, 3), 16);
+    const g = parseInt(hex.slice(3, 5), 16);
+    const b = parseInt(hex.slice(5, 7), 16);
+
+    // Calcular la luminosidad (fórmula YIQ para determinar el contraste)
+    // El umbral estándar es 128 o 186. Usaremos 186 para asegurar un buen contraste en un diseño profesional.
+    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
+    
+    // Si la luminosidad es mayor que 186, el color de fondo es claro -> usar texto negro.
+    // De lo contrario, el color de fondo es oscuro -> usar texto blanco.
+    return (yiq >= 186) ? 'black' : 'white';
+};
 </script>
 
 <style scoped>
@@ -151,5 +167,11 @@ const formattedDueDate = computed(() => {
 /* Nuevo estilo para indicar que es clickable para edición */
 .task-card:not(:active):hover {
     cursor: pointer; 
+}
+
+.tag-list {
+    flex-wrap: nowrap; /* Asegura que no salten de línea */
+    overflow-x: hidden; /* Oculta la barra de desplazamiento */
+    /* Añade un sutil efecto de desvanecimiento si hay muchas tags (opcional) */
 }
 </style>

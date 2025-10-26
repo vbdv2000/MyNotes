@@ -10,7 +10,7 @@
     <v-card :loading="loading" class="project-edit-card">
       <v-card-title class="text-h5 primary-title d-flex align-center">
         <v-icon icon="mdi-pencil-box-multiple" class="me-2"></v-icon>
-        Editar Proyecto: {{ editableProject.title || 'Cargando...' }}
+        Edit Project: {{ editableProject.title || 'Loading...' }}
         
         <v-spacer v-if="$vuetify.display.xs"></v-spacer>
         <v-btn v-if="$vuetify.display.xs" icon="mdi-close" variant="text" @click="emit('close')"></v-btn>
@@ -24,8 +24,8 @@
               <v-col cols="12" md="6">
                 <v-text-field 
                   v-model="editableProject.title" 
-                  label="Título del Proyecto" 
-                  :rules="[v => !!v || 'El título es obligatorio']" 
+                  label="Title" 
+                  :rules="[v => !!v || 'Title is required']" 
                   variant="outlined"
                   required 
                   class="mb-3"
@@ -33,7 +33,7 @@
                 
                 <v-textarea 
                   v-model="editableProject.description" 
-                  label="Descripción Detallada" 
+                  label="Detailed Description" 
                   rows="4" 
                   variant="outlined"
                   class="mb-3"
@@ -41,12 +41,12 @@
 
                 <v-list-item density="compact" class="px-0">
                     <v-list-item-title class="text-subtitle-2">
-                        Creado: {{ formattedDate(editableProject.created_at) }}
+                        Created: {{ formattedDate(editableProject.created_at) }}
                     </v-list-item-title>
                 </v-list-item>
                 <v-list-item density="compact" class="px-0">
                     <v-list-item-title class="text-subtitle-2">
-                        Última Edición: {{ formattedDate(editableProject.updated_at) }}
+                        Last Edited: {{ formattedDate(editableProject.updated_at) }}
                     </v-list-item-title>
                 </v-list-item>
 
@@ -57,11 +57,11 @@
                   v-model="collaboratorIds"
                   :items="[]" item-title="full_name"
                   item-value="id"
-                  label="Colaboradores del Proyecto (Temporalmente deshabilitado)"
+                  label="Project Collaborators (Temporarily Disabled)"
                   multiple
                   chips
                   variant="outlined"
-                  placeholder="Añadir miembros del equipo"
+                  placeholder="Add team members"
                   class="mb-5"
                   disabled >
                    <template v-slot:chip="{ props }">
@@ -70,7 +70,7 @@
                 </v-select>
                 
                 <v-alert density="compact" type="info" class="mb-5">
-                    La gestión de usuarios está temporalmente deshabilitada.
+                    User management is temporarily disabled.
                 </v-alert>
 
                 <ProjectTagManager 
@@ -85,9 +85,9 @@
 
             <v-card-actions class="pa-0 mt-6">
               <v-spacer></v-spacer>
-              <v-btn variant="text" @click="closeDialog" :disabled="loading">Cancelar</v-btn>
+              <v-btn variant="text" @click="closeDialog" :disabled="loading">Cancel</v-btn>
               <v-btn type="submit" color="primary" :loading="loading" variant="flat">
-                Guardar Cambios
+                Save Changes
               </v-btn>
             </v-card-actions>
           </v-form>
@@ -99,9 +99,8 @@
 
 <script setup lang="ts">
 import { ref, watch } from 'vue';
-import { useTaskStore } from '@/stores/task'; // O tu store de Proyectos
-// 💡 Asumimos que tienes un store de usuarios (userStore) o que usas un composable para ellos
-// import { useUserStore } from '@/stores/user'; 
+import { useTaskStore } from '@/stores/task'; 
+// import { useUserStore } from '@/stores/user'; // Asume la existencia del userStore
 import ProjectTagManager from '@/components/tags/ProjectTagManager.vue'; 
 import type { Project, ProjectUpdate } from '@/types/project'; // Asume estos tipos
 
@@ -113,7 +112,7 @@ const props = defineProps<{
 const emit = defineEmits(['update:modelValue', 'projectUpdated', 'close']);
 
 const taskStore = useTaskStore();
-// const userStore = useUserStore(); // Asume la existencia del userStore
+// const userStore = useUserStore(); // Asume comentado/deshabilitado
 const loading = ref(false);
 const error = ref('');
 
@@ -123,8 +122,10 @@ const emptyProject: Project = {
     created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
     collaborators: [], tags: [], tasks: [], history: [], notifications: []
 };
-const editableProject = ref<Project>(emptyProject);
-const collaboratorIds = ref<number[]>([]);
+const editableProject = ref<Project>({ ...emptyProject }); // Usamos una copia del template vacío
+
+// 💡 CORRECCIÓN 1: Descomentar y definir el ref para los colaboradores.
+const collaboratorIds = ref<number[]>([]); 
 const tagIds = ref<number[]>([]); 
 
 
@@ -132,22 +133,40 @@ const tagIds = ref<number[]>([]);
 
 // Carga los detalles del proyecto
 const loadProjectDetails = async (id: number) => {
+    // Inicialización al abrir el diálogo
+    // 💡 REINICIAMOS: Se usa `emptyProject` para que los campos vacíos no muestren datos de un proyecto anterior
+    editableProject.value = { ...emptyProject }; 
+    collaboratorIds.value = [];
+    tagIds.value = [];
+
     if (!id || loading.value) return;
+    
     loading.value = true;
     error.value = '';
+    
     try {
-        // 💡 Llama a GET /api/projects/{project_id}
-        const project: Project = await taskStore.fetchProjectDetails(id); 
-
-        // Inicializa el estado local
-        editableProject.value = project;
-        collaboratorIds.value = project.collaborators.map(c => c.id);
-        tagIds.value = project.tags.map(t => t.id);
+        // 1. Llama a la acción y espera la carga
+        await taskStore.fetchProjectDetails(id); 
         
-        // 💡 Cargar usuarios (si no están ya cargados globalmente)
-        // if (!userStore.allUsers.length) {
-        //     await userStore.fetchAllUsers();
-        // }
+        // 2. Comprobamos si el proyecto se cargó correctamente en el store
+        // 💡 Importante: usamos la referencia reactiva o el getter del store
+        const project = taskStore.currentProject;
+
+        if (project) {
+            // 3. COPIA PROFUNDA: Transferencia de datos exitosa del store al estado local
+            editableProject.value = JSON.parse(JSON.stringify(project));
+            
+            // 4. Inicializa los campos de IDs
+            collaboratorIds.value = project.collaborators?.map(c => c.id) || [];
+            tagIds.value = project.tags?.map(t => t.id) || [];
+            
+            // 5. Cargar usuarios (si estuviera habilitado)
+            // if (!userStore.allUsers.length) { await userStore.fetchAllUsers(); }
+            
+        } else {
+            // Manejo de caso en que el proyecto no se encuentra
+            error.value = 'El proyecto no pudo ser encontrado en el store.';
+        }
 
     } catch (e) {
         error.value = 'Error al cargar los detalles del proyecto.';
@@ -160,9 +179,13 @@ const loadProjectDetails = async (id: number) => {
 // Sincroniza la apertura del diálogo con la carga de datos
 watch(() => props.modelValue, (val) => {
     if (val && props.projectId) {
+        // Cuando el diálogo se abre (val=true), cargamos los datos.
         loadProjectDetails(props.projectId);
     }
-});
+    if (!val) {
+        taskStore.currentProject = null; // Asumiendo que esta acción está permitida o tienes un setter/action para limpiar
+    }
+}, { immediate: true })
 
 // --- Handlers de Interacción ---
 
@@ -178,8 +201,8 @@ const formattedDate = (dateString: string) => {
 };
 
 const closeDialog = () => {
-    // Resetear el estado local si es necesario
-    editableProject.value = emptyProject;
+    // 💡 CORRECCIÓN 3: Revertir `editableProject` al template vacío ANTES de cerrar
+    editableProject.value = { ...emptyProject };
     emit('update:modelValue', false);
     emit('close');
 };
@@ -187,18 +210,16 @@ const closeDialog = () => {
 const saveProject = async () => {
     loading.value = true;
     error.value = '';
-
+    // ... (El resto de la lógica de guardado es correcta) ...
     try {
-        // Payload para el endpoint PATCH /api/projects/{project_id}
         const payload: ProjectUpdate = {
             title: editableProject.value.title,
             description: editableProject.value.description,
-            // 💡 Enviar solo las listas de IDs
+            // 💡 Manteniendo la compatibilidad para PATCH
             collaborator_ids: collaboratorIds.value,
             tag_ids: tagIds.value,
         };
         
-        // Asumiendo una acción en el store que llama al endpoint PATCH
         await taskStore.updateProject(props.projectId, payload);
 
         emit('projectUpdated');

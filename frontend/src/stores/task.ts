@@ -162,11 +162,10 @@ export const useTaskStore = defineStore("task", {
             }
         },
 
-        async createProjectTag(projectId: number, tagData: { name: string, color: string }): Promise<Tag> {
+        async createProjectTag(projectId: number, name: string, color: string): Promise<Tag> {
             this.error = null;
             try {
-                // API: POST /api/projects/{project_id}/tags
-                const response = await api.post(`/projects/${projectId}/tags`, tagData);
+                const response = await api.post(`/projects/${projectId}/tags`, { name, color });
                 const newTag: Tag = response.data;
 
                 // 💡 Actualizar la lista de tags en el store (para el selector)

@@ -11,6 +11,13 @@ def get_tag(db: Session, tag_id: int) -> Optional[Tag]:
     return db.scalar(stmp)
 
 
+def get_tag_by_name(db: Session, name: str) -> Tag | None:
+    """
+    Obtiene una Tag por su nombre, ignorando mayúsculas y minúsculas para robustez.
+    """
+    return db.scalar(select(Tag).where(Tag.name.ilike(name)))
+
+
 def get_tags(
     db: Session, skip: int = 0, limit: int = 100, search: Optional[str] = None
 ) -> List[Tag]:

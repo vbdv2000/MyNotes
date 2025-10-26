@@ -33,9 +33,7 @@ def validate_color(color: str) -> None:
 # -------------------------------------------------------------------------
 
 
-@router.post(
-    "/{project_id}/tags", response_model=TagSchema, status_code=status.HTTP_201_CREATED
-)
+@router.post("/tags", response_model=TagSchema, status_code=status.HTTP_201_CREATED)
 def create_and_associate_tag(
     project_id: int,
     tag_in: TagCreate,
@@ -70,7 +68,7 @@ def create_and_associate_tag(
     return tag
 
 
-@router.get("/{project_id}/tags", response_model=List[TagSchema])
+@router.get("/tags", response_model=List[TagSchema])
 def get_project_tags(
     project_id: int,
     db: Session = Depends(get_db),
@@ -97,7 +95,7 @@ def get_project_tags(
     return tags
 
 
-@router.get("/{project_id}/tags/{tag_id}", response_model=TagSchema)
+@router.get("/tags/{tag_id}", response_model=TagSchema)
 def get_tag_in_project(
     project_id: int,
     tag_id: int,
@@ -125,7 +123,7 @@ def get_tag_in_project(
     return tag
 
 
-@router.put("/{project_id}/tags/{tag_id}", response_model=TagSchema)
+@router.put("/tags/{tag_id}", response_model=TagSchema)
 def update_tag_in_project(
     project_id: int,
     tag_id: int,
@@ -165,7 +163,7 @@ def update_tag_in_project(
     return crud_tag.update_tag(db, db_obj=tag, obj_in=tag_in)
 
 
-@router.delete("/{project_id}/tags/{tag_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/tags/{tag_id}", status_code=status.HTTP_204_NO_CONTENT)
 def remove_tag_from_project(
     project_id: int,
     tag_id: int,

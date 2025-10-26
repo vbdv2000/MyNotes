@@ -1,6 +1,6 @@
 <template>
   <v-dialog
-    :fullscreen="$vuetify.display.xs"
+    :model-value="modelValue"  @update:model-value="emit('close')" :fullscreen="$vuetify.display.xs"
     max-width="600"
     transition="dialog-bottom-transition"
     scrollable
@@ -39,7 +39,7 @@
               @update:tags="handleTagUpdate"
             />
 
-            <v-label class="mt-4">Prioridad</v-label>
+            <v-label class="mt-4">Priority</v-label>
             <v-btn-toggle
                 v-model="newTask.priority"
                 color="primary"
@@ -105,6 +105,7 @@ import { VCard, VCardTitle, VCardText, VForm, VTextField, VTextarea, VSelect, VA
 // Definición de Props y Emits
 const props = defineProps<{
     projectId: number;
+    modelValue: boolean;
 }>();
 
 const emit = defineEmits(['taskCreated', 'close']);
@@ -125,10 +126,10 @@ const newTask = ref({
 });
 
 const priorityOptions = [
-    { title: 'Baja', value: 'low', color: 'green', icon: 'mdi-check' },
-    { title: 'Media', value: 'medium', color: 'blue', icon: 'mdi-minus' },    
-    { title: 'Alta', value: 'high', color: 'orange', icon: 'mdi-alert' },
-    { title: 'Urgente', value: 'urgent', color: 'red', icon: 'mdi-fire' },
+    { title: 'Low', value: 'low', color: 'green', icon: 'mdi-check' },
+    { title: 'Medium', value: 'medium', color: 'blue', icon: 'mdi-minus' },
+    { title: 'High', value: 'high', color: 'orange', icon: 'mdi-alert' },
+    { title: 'Urgent', value: 'urgent', color: 'red', icon: 'mdi-fire' },
 
 ];
 

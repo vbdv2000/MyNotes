@@ -14,3 +14,8 @@ export interface Tag {
     name: string;
     color: string;
 }
+
+export interface TagCreate {
+    name: string;
+    color: string;
+}

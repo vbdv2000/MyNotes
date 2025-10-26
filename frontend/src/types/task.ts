@@ -11,7 +11,7 @@ export interface Task {
     priority: 'low' | 'medium' | 'high' | 'urgent';
     project_id: number;
     assigned_users: User[]; // Lista completa de usuarios asignados
-    tags: Tag[];
+    projectTags: Tag[];
     created_at: string;
     // updated_at si lo necesitas
 }

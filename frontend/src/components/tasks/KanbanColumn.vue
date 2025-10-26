@@ -42,7 +42,7 @@
         class="mt-2"
         @click="$emit('addTask')"
     >
-        Nueva Tarea
+        New Task
     </v-btn>
 
   </v-card>

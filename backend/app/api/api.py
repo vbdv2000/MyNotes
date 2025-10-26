@@ -10,4 +10,8 @@ api_router.include_router(tasks.router, prefix="/projects", tags=["tasks"])
 api_router.include_router(
     notifications.router, prefix="/notifications", tags=["notifications"]
 )
-api_router.include_router(tags.router, prefix="/tags", tags=["tags"])
+api_router.include_router(
+    tags.router,
+    prefix="/projects/{project_id}",
+    tags=["tags"],
+)
